@@ -1,0 +1,59 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build executable",
+            "type": "process",
+            "command": "C:/Program Files/AutoHotkey/Compiler/Ahk2Exe.exe",
+            "args": [
+                "/compress", "2",
+                "/in", "${workspaceFolder}/src/trigger.ahk",
+                "/out", "${workspaceFolder}/dist/trigger.exe"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Deploy to OneDrive",
+            "type": "process",
+            "command": "rclone",
+            "args": [
+                "copy",
+                "dist/trigger.exe",
+                "hotstrings:"
+            ],
+            "presentation": {
+                "reveal": "silent"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "none",
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy to Local",
+            "type": "process",
+            "command": "rclone",
+            "args": [
+                "copy",
+                "dist/trigger.exe",
+                "D:/applications/trigger"
+            ],
+            "presentation": {
+                "reveal": "silent"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "none",
+            "problemMatcher": []
+        }
+    ]
+}
