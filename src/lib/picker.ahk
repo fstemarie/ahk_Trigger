@@ -11,7 +11,6 @@ class Picker extends Gui {
         super.__New(options, 'Trigger', this)
         this.shortcuts := shortcuts
         this.cfg := cfg
-        this.edts := Editors()
         this.ns := Notes(cfg.notesDir)
         this.currentNote := ''
         this.notetimer := ''
@@ -172,9 +171,11 @@ class Picker extends Gui {
     }
 
     lvPicker_OnClick(lv, row) {
+        if (!row)
+            return
         this.Hide()
         SetKeyDelay(0)
-        sc := this.shortcuts[lv.GetText(row, 1)]
+        sc := this.shortcuts[lv.GetText(row)]
         sc.Send_Replacement()
     }
 
