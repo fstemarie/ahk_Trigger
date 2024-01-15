@@ -21,38 +21,20 @@
         },
         {
             "label": "Deploy to OneDrive",
-            "type": "process",
-            "command": "rclone",
-            "args": [
-                "copy",
-                "dist/trigger.exe",
-                "ahk_Tools:"
-            ],
+            "type": "shell",
+            "command": "deploy/onedrive.ps1",
             "presentation": {
                 "reveal": "silent"
             },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "group": "none",
             "problemMatcher": []
         },
         {
             "label": "Deploy to Local",
-            "type": "process",
-            "command": "rclone",
-            "args": [
-                "copy",
-                "dist/trigger.exe",
-                "D:/applications/trigger"
-            ],
+            "type": "shell",
+            "command": "deploy/local.ps1",
             "presentation": {
                 "reveal": "silent"
             },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "group": "none",
             "problemMatcher": []
         }
     ]
