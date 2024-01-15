@@ -37,7 +37,7 @@ Class Config {
             return this._notesDir
         }
         set {
-            if (InStr(FileExist(value), 'D')) {
+            if (value and DirExist(value)) {
                 IniWrite(value, this.configFile, 'Configuration', 'notesDir')
                 this._notesDir := value
             } else {
@@ -77,6 +77,28 @@ Class Config {
         }
     }
 
+    Pick_csvFile() {
+        filename := FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
+        if (filename) {
+            this.csvFile := filename
+        } else {
+            OutputDebug('No CSV File selected')
+            MsgBox('HotStrings.ahk - No CSV File', 'You MUST select a CSV File', 16)
+            ExitApp(1)
+        }
+    }
+
+    Pick_notesDir() {
+        dirname := FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
+        if (dirname) {
+            this.notesDir := dirname
+        } else {
+            OutputDebug('No notes folder selected')
+            MsgBox('HotStrings.ahk - No notes Folder', 'You MUST select a notes folder', 16)
+            ExitApp(1)
+        }
+    }
+
     static Load_Config(configFile) {
         OutputDebug('-- ' A_ThisFunc '()`n')
         emptyconfig := '
@@ -92,25 +114,11 @@ Class Config {
         }
     
         cfg := Config(configFile)
-        if (!cfg.csvFile) {
-            filename := FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
-            if (filename) {
-                cfg.csvFile := filename
-            } else {
-                OutputDebug('No CSV File selected')
-                MsgBox('HotStrings.ahk - No CSV File', 'You MUST select a CSV File', 16)
-                ExitApp(1)
-            }
+        if (!cfg.csvFile or !FileExist(cfg.csvFile)) {
+            cfg.Pick_csvFile()
         }
-        if (!cfg.notesDir) {
-            dirname := FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
-            if (dirname) {
-                cfg.notesDir := dirname
-            } else {
-                OutputDebug('No notes folder selected')
-                MsgBox('HotStrings.ahk - No notes Folder', 'You MUST select a notes folder', 16)
-                ExitApp(1)
-            }
+        if (!cfg.notesDir or !DirExist(cfg.notesDir)) {
+            cfg.Pick_notesDir()
         }
         return cfg
     }
