@@ -1,3 +1,6 @@
+;@Ahk2Exe-SetName Trigger
+;@Ahk2Exe-SetVersion 2.2
+
 #Requires AutoHotkey v2.0
 
 #include <config>
