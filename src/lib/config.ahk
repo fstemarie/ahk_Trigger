@@ -1,27 +1,49 @@
 #Requires AutoHotkey v2.0
 
 Class Config {
-    __New(configFile) {
-        if (!FileExist(configFile)) {
+    __New(cfgFile) {
+        if (!FileExist(cfgFile)) {
             throw 'INI File not found'
         }
-        this.configFile := configFile
+        this.cfgFile := cfgFile
+        this._hotkey := ''
+        this._icon := ''
         this._csvFile := ''
         this._notesDir := ''
         this._document := ''
+        this._showCategoryAll := ''
         this._defaultCategory := ''
+    }
+
+    hotkey {
+        get {
+            if (!this._hotkey) {
+                this._hotkey := IniRead(this.cfgFile, 'Configuration', 'hotkey', 'F1')
+            }
+            return this._hotkey
+        }
+    }
+
+    icon {
+        get {
+            if (!this._icon) {
+                this._icon := IniRead(this.cfgFile, 'Configuration', 'icon', 'trayicon.ico')
+            }
+            return this._icon
+
+        }
     }
 
     csvFile {
         get {
             if (!this._csvFile) {
-                this._csvFile := IniRead(this.configFile, 'Configuration', 'csvFile', '')
+                this._csvFile := IniRead(this.cfgFile, 'Configuration', 'csvFile', 'trigger.csv')
             }
             return this._csvFile
         }
         set {
             if (FileExist(value)) {
-                IniWrite(value, this.configFile, 'Configuration', 'csvFile')
+                IniWrite(value, this.cfgFile, 'Configuration', 'csvFile')
                 this._csvFile := value
             } else {
                 throw 'File must exist'
@@ -32,13 +54,13 @@ Class Config {
     notesDir {
         get {
             if (!this._notesDir) {
-                this._notesDir := IniRead(this.configFile, 'Configuration', 'notesDir', '')
+                this._notesDir := IniRead(this.cfgFile, 'Configuration', 'notesDir', 'notes')
             }
             return this._notesDir
         }
         set {
             if (value and DirExist(value)) {
-                IniWrite(value, this.configFile, 'Configuration', 'notesDir')
+                IniWrite(value, this.cfgFile, 'Configuration', 'notesDir')
                 this._notesDir := value
             } else {
                 throw 'Notes folder must exist'
@@ -49,13 +71,13 @@ Class Config {
     document {
         get {
             if (!this._document) {
-                this._document := IniRead(this.configFile, 'Configuration', 'document', '')
+                this._document := IniRead(this.cfgFile, 'Configuration', 'document', this.csvFile)
             }
             return this._document
         }
         set {
             if (InStr(FileExist(value), 'N')) {
-                IniWrite(value, this.configFile, 'Configuration', 'document')
+                IniWrite(value, this.cfgFile, 'Configuration', 'document')
                 this._document := value
             } else {
                 throw 'Document must exist'
@@ -63,16 +85,30 @@ Class Config {
         }
     }
 
+    showCategoryAll {
+        get {
+            if (!this._showCategoryAll) {
+                this._showCategoryAll := IniRead(this.cfgFile, 'Configuration', 'showCategoryAll', '')
+            }
+            return this._showCategoryAll
+
+        }
+        set {
+            IniWrite(value, this.cfgFile, 'Configuration', 'showCategoryAll')
+            this._showCategoryAll := value
+        }
+    }
+
     defaultCategory {
         get {
             if (!this._defaultCategory) {
-                this._defaultCategory := IniRead(this.configFile, 'Configuration', 'defaultCategory', '')
+                this._defaultCategory := IniRead(this.cfgFile, 'Configuration', 'defaultCategory', '')
             }
             return this._defaultCategory
 
         }
         set {
-            IniWrite(value, this.configFile, 'Configuration', 'defaultCategory')
+            IniWrite(value, this.cfgFile, 'Configuration', 'defaultCategory')
             this._defaultCategory := value
         }
     }
@@ -99,21 +135,18 @@ Class Config {
         }
     }
 
-    static Load_Config(configFile) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        emptyconfig := '
-        (
-            [Configuration]
-            csvFile=
-            notesDir=
-            document=
-            defaultCategory=
-        )'
-        if !FileExist(configFile) {
-            FileAppend(emptyConfig, configFile)
+    Pick_document() {
+        filename := FileSelect((1 + 2), A_MyDocuments, 'Choose the document to edit')
+        if (filename) {
+            this.document := filename
         }
-    
-        cfg := Config(configFile)
+    }
+
+    static Load_Config(cfgFile) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
+        FileInstall("config.ini", "trigger.ini", 0)
+        cfg := Config(cfgFile)
         if (!cfg.csvFile or !FileExist(cfg.csvFile)) {
             cfg.Pick_csvFile()
         }
