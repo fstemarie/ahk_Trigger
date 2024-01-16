@@ -11,7 +11,8 @@ class Picker extends Gui {
         super.__New(options, 'Trigger', this)
         this.shortcuts := shortcuts
         this.cfg := cfg
-        this.ns := Notes(cfg.notesDir)
+        this.edts := Editors()
+        this.ns := Notes(this.cfg.notesDir)
         this.currentNote := ''
         this.notetimer := ''
         this.Build()
