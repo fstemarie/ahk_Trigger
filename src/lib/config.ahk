@@ -145,7 +145,9 @@ Class Config {
     static Load_Config(cfgFile) {
         OutputDebug('-- ' A_ThisFunc '()`n')
 
-        FileInstall("config.ini", "trigger.ini", 0)
+        try {
+            FileInstall("config.ini", "trigger.ini", 0)
+        }
         cfg := Config(cfgFile)
         if (!cfg.csvFile or !FileExist(cfg.csvFile)) {
             cfg.Pick_csvFile()
