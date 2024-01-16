@@ -17,6 +17,7 @@ class Picker extends Gui {
         this.Build()
         this.Load_Categories()
         this.Refresh_Notes()
+        Setup_HotKey(this.cfg.hotkey)
     }
 
     Build() {
@@ -321,5 +322,36 @@ class Picker extends Gui {
         Find_Center(&x, &y, w, h, mon)
         this.Move(x, y)
         WinActivate(this.Hwnd)
+    }
+}
+
+
+Setup_HotKey(hk) {
+    Hotkey(hk, Showup_HotKey)
+    Hotkey(hk . ' UP', Showup_HotKey)
+}
+
+Showup_HotKey(hk) {
+    static skipUP := false
+    ui := view
+    isUP := RegExMatch(hk, ' UP$')
+    if (!isUP) {
+        skipUP := false
+        SetTimer(longpress, -500)
+        KeyWait(hk)
+    }
+    if (isUP and !skipUP) {
+        SetTimer(longpress, 0)
+        OutputDebug('#### HotKey Pressed `n')
+        if (WinExist('ahk_id' view.Hwnd)) 
+            view.FollowMouse()
+        else
+            view.MakeItAppear()
+    }
+
+    longpress() {
+        OutputDebug('#### HotKey Long Pressed `n')
+        skipUP := true
+        edts.Tile()
     }
 }
