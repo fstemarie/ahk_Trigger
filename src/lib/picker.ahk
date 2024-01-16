@@ -130,7 +130,8 @@ class Picker extends Gui {
 
     OnClose() {
         OutputDebug('-- ' A_ThisFunc '()`n')
-        this.MakeItDisappear()
+        ExitApp()
+        ; this.MakeItDisappear()
     }
 
     OnSize(minmax, width, height) {
@@ -281,6 +282,8 @@ class Picker extends Gui {
     Load_Categories() {
         lb := this.lbCategories
         cats := this.shortcuts.categories
+        if (cfg.showCategoryAll)
+            lb.Add(['*'])
         lb.Add(cats)
         lb.Choose(1)
     }
@@ -290,7 +293,7 @@ class Picker extends Gui {
         category := category ?? this.lbCategories.Text
         lv.Delete()
         for ,sc in this.shortcuts {
-            if (sc.category = category) {
+            if (category = "*" or sc.category = category) {
                 for ,rep in sc.replacements {
                     rep := StrReplace(rep, '{Raw}')
                     lv.Add(, sc.trigger, rep)
