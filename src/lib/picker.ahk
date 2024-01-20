@@ -64,11 +64,15 @@ class Picker extends Gui {
         this.MenuBar.Add('Options', mnuOptions)
 
         ; Tabs
-        w := totalWidth, h := totalHeight, ybias := 35
+        w := totalWidth, h := totalHeight, tabsHeight := 35
         options := Format('x0 y0 w{} h{} ', w, h)
         this.tabs := this.Add('Tab3', options, ['Picker', 'Notes'])
+
+
         ; lvPicker
-        w := (totalWidth * 0.80) - 2*mx, h := totalHeight - 50 - 2*my - ybias
+        buttonHeight := 50
+        w := (totalWidth * 0.80) - 2*mx
+        h := totalHeight - tabsHeight - 3*buttonHeight - 6*my
         options := Format('w{} h{} ', w, h)
         options .= Format('+LV{} -LV{} ', LVS_EX_TRACKSELECT, LVS_EX_HEADERDRAGDROP)
         options .= '+Grid -Multi Section'
@@ -79,29 +83,40 @@ class Picker extends Gui {
         this.lvPicker.OnEvent('ItemSelect', 'lvPicker_OnItemSelect')
         this.lvPicker.OnEvent('ContextMenu', 'lvPicker_OnContextMenu')
         PostMessage(LVM_SETHOVERTIME, 0, 1,, 'ahk_id ' this.lvPicker.Hwnd)
+
+        ; edtPreview
+        h := 3*buttonHeight + 2*my
+        options := Format('xs wp h{} +ReadOnly', h)
+        this.edtPreview := this.Add('Edit', options)
+
         ; lbCategories
         w := (totalWidth * 0.20) - 2*mx
-        options := Format('ys w{} hp {} -Border Sort', w, LBS_NOINTEGRALHEIGHT)
+        h := totalHeight - tabsHeight - 3*buttonHeight - 6*my
+        options := Format('ys w{} h{} {} -Border Sort', w, h, LBS_NOINTEGRALHEIGHT)
         this.lbCategories := this.Add('ListBox', options)
         this.lbCategories.OnEvent('Change', 'lbCategories_OnChange')
         this.lbCategories.OnEvent('DoubleClick', 'lbCategories_OnDoubleClick')
+
         ; btnDoc
-        h := 50 - 2*my
-        options := Format('xs w150 h{} Section', h, LBS_NOINTEGRALHEIGHT)
+        h := buttonHeight ; - 2*my
+        options := Format('xp wp h{}', h, LBS_NOINTEGRALHEIGHT)
         this.btnDoc := this.Add('Button', options, 'Edit &Doc')
         ; this.btnDoc.OnEvent('Click', 'btnDoc_OnClick')
         this.btnDoc.OnEvent('Click', (*)=>Run(this.cfg.document))
         ; btnEdit
-        options := 'ys wp hp'
+        options := 'xp wp hp'
         this.btnEdit := this.Add('Button', options, '&Text Editor')
         this.btnEdit.OnEvent('Click', (*)=>this.edts.Start())
         ; btnReload
         this.btnReload := this.Add('Button', options, '&Reload')
         this.btnReload.OnEvent('Click', (*)=>Reload())
 
+
+
+
         this.tabs.UseTab('Notes')
         ; edtNote
-        w := (totalWidth * 0.80) - 2*mx, h := totalHeight - 50 - 2*my - ybias
+        w := (totalWidth * 0.80) - 2*mx, h := totalHeight - 50 - 2*my - tabsHeight
         options := Format('w{} h{} +WantTab Section', w, h)
         this.edtNote := this.Add('Edit', options)
         this.edtNote.Enabled := false
@@ -130,7 +145,6 @@ class Picker extends Gui {
 
 ; #region Events
     OnActivate(Activated, thread, msg, hwnd) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
         thiswindow := (hwnd == this.Hwnd)
         if (Activated and thiswindow) {
             OutputDebug('-- Activated`n')
@@ -245,9 +259,10 @@ class Picker extends Gui {
     }
 
     lvPicker_OnItemSelect(lv, row, selected) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-
-        ToolTip(,,,1)
+        if (selected)
+            this.edtPreview.Value := lv.GetText(row, 2)
+        else
+            ToolTip(,,,1)
     }
 
     lvPicker_OnContextMenu(lv, row, isRightClick, x, y) {
