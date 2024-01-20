@@ -2,6 +2,7 @@
 
 #include <base64>
 
+#HotIf A_UserName = 'francois' and A_ComputerName = 'HX90'
 :*:###:: {
     static password := ''
 
@@ -17,3 +18,4 @@
     oldClip := ''
     Send('{Raw}' password)
 }
+#HotIf
