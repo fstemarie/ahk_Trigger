@@ -2,18 +2,40 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build executable",
+            "label": "Build Updater",
             "type": "process",
             "command": "C:/Program Files/AutoHotkey/Compiler/Ahk2Exe.exe",
             "args": [
-                "/compress", "2",
-                "/in", "${workspaceFolder}/src/trigger.ahk",
-                "/out", "${workspaceFolder}/dist/trigger.exe"
+                "/compress",
+                "2",
+                "/in",
+                "${workspaceFolder}/src/trigger-update.ahk",
+                "/out",
+                "${workspaceFolder}/dist/trigger-update.exe"
             ],
             "problemMatcher": [],
             "group": {
-                "kind": "build",
-                "isDefault": true
+                "kind": "build"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Build Application",
+            "type": "process",
+            "command": "C:/Program Files/AutoHotkey/Compiler/Ahk2Exe.exe",
+            "args": [
+                "/compress",
+                "2",
+                "/in",
+                "${workspaceFolder}/src/trigger.ahk",
+                "/out",
+                "${workspaceFolder}/dist/trigger-new.exe"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build"
             },
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -22,19 +44,28 @@
         {
             "label": "Deploy to OneDrive",
             "type": "shell",
-            "command": "deploy/onedrive.ps1",
+            "command": "scripts/deploy/onedrive.ps1",
             "presentation": {
-                "reveal": "silent"
+                "reveal": "always"
             },
             "problemMatcher": []
         },
         {
             "label": "Deploy to Local",
             "type": "shell",
-            "command": "deploy/local.ps1",
+            "command": "scripts/deploy/local.ps1",
             "presentation": {
-                "reveal": "silent"
+                "reveal": "always"
             },
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy everywhere",
+            "dependsOn": [
+                "Deploy to Local",
+                "Deploy to OneDrive"
+            ],
+            "dependsOrder": "parallel",
             "problemMatcher": []
         }
     ]
