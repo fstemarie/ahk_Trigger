@@ -12,17 +12,19 @@ class Picker extends Gui {
         this.shortcuts := shortcuts
         this.cfg := cfg
         this.edts := Editors()
-        this.ns := Notes(this.cfg.notesDir)
+        this.ns := Notes(cfg.notesDir)
         this.currentNote := ''
         this.notetimer := ''
         this.Build()
         this.Load_Categories()
         this.Refresh_Notes()
-        Setup_HotKey(this.cfg.hotkey)
+        Hotkey(cfg.hotkey, Showup_HotKey)
+        Hotkey(cfg.hotkey . ' UP', Showup_HotKey)
     }
 
     Build() {
         OutputDebug('-- ' A_ThisFunc '()`n')
+
         WM_ACTIVATEAPP := 0x001C
         LVM_SETHOVERTIME := 0x1047
         LVS_EX_HEADERDRAGDROP := 0x10
@@ -34,16 +36,33 @@ class Picker extends Gui {
         this.BackColor := 'BDC3CB'
         mx := this.MarginX := my := this.MarginY := 5
         OnMessage(WM_ACTIVATEAPP, ObjBindMethod(this, 'OnActivate'))
-        this.OnEvent('Escape', 'OnEscape')
-        this.OnEvent('Close', 'OnClose')
+        this.OnEvent('Escape', (*)=>this.MakeItDisappear())
+        this.OnEvent('Close', (*)=>ExitApp())
         this.OnEvent('Size', 'OnSize')
-
-        this.imgList := IL_Create(2)
-        IL_Add(this.imgList, 'shell32.dll', 2)
-        IL_Add(this.imgList, 'shell32.dll', 4)
 
         totalWidth := totalHeight := 0
         this.GetClientPos(,,&totalWidth, &totalHeight)
+
+        menuHandler := ObjBindMethod(this, 'mnuCommands_OnEvent')
+        mnuCommands := Menu()
+        mnuCommands.Add('Edit Document', menuHandler)
+        mnuCommands.Add('Open Editor', menuHandler)
+        mnuCommands.Add('Reload', menuHandler)
+        mnuCommands.Add('Quit', menuHandler)
+        menuHandler := ObjBindMethod(this, 'mnuOptions_OnEvent')
+        mnuOptions := Menu()
+        mnuOptions.Add('Change HotKey', menuHandler)
+        mnuOptions.Add('Change Icon', menuHandler)
+        mnuOptions.Add('Change CSV File', menuHandler)
+        mnuOptions.Add('Change notes folder', menuHandler)
+        mnuOptions.Add('Change document to edit', menuHandler)
+        mnuOptions.Add('Show "*" category', menuHandler)
+        if (this.cfg.showCategoryAll)
+            mnuOptions.Check('Show "*" category')
+        this.MenuBar := MenuBar()
+        this.MenuBar.Add('Commands', mnuCommands)
+        this.MenuBar.Add('Options', mnuOptions)
+
         ; Tabs
         w := totalWidth, h := totalHeight, ybias := 35
         options := Format('x0 y0 w{} h{} ', w, h)
@@ -70,17 +89,15 @@ class Picker extends Gui {
         h := 50 - 2*my
         options := Format('xs w150 h{} Section', h, LBS_NOINTEGRALHEIGHT)
         this.btnDoc := this.Add('Button', options, 'Edit &Doc')
-        this.btnDoc.OnEvent('Click', 'btnDoc_OnClick')
+        ; this.btnDoc.OnEvent('Click', 'btnDoc_OnClick')
+        this.btnDoc.OnEvent('Click', (*)=>Run(this.cfg.document))
         ; btnEdit
         options := 'ys wp hp'
         this.btnEdit := this.Add('Button', options, '&Text Editor')
-        this.btnEdit.OnEvent('Click', 'btnEdit_OnClick')
+        this.btnEdit.OnEvent('Click', (*)=>this.edts.Start())
         ; btnReload
         this.btnReload := this.Add('Button', options, '&Reload')
-        this.btnReload.OnEvent('Click', 'btnReload_OnClick')
-        ; btnQuit
-        this.btnQuit := this.Add('Button', options, '&Quit')
-        this.btnQuit.OnEvent('Click', 'btnQuit_OnClick')
+        this.btnReload.OnEvent('Click', (*)=>Reload())
 
         this.tabs.UseTab('Notes')
         ; edtNote
@@ -89,10 +106,10 @@ class Picker extends Gui {
         this.edtNote := this.Add('Edit', options)
         this.edtNote.Enabled := false
         this.edtNote.OnEvent('Change', 'edtNote_OnChange')
-        ; tvNote
         ; lbNote
         w := (totalWidth * 0.20) - 2*mx
-        options := Format('yp w{} hp -Border +Sort', w)
+        options := Format('ys w{} hp {} -Border +Sort', w, LBS_NOINTEGRALHEIGHT)
+        ; options := Format('yp w{} hp -Border +Sort', w)
         this.lbNote := this.Add('ListBox', options)
         this.lbNote.OnEvent('Change', 'lbNote_OnChange')
 
@@ -113,6 +130,7 @@ class Picker extends Gui {
 
 ; #region Events
     OnActivate(Activated, thread, msg, hwnd) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
         thiswindow := (hwnd == this.Hwnd)
         if (Activated and thiswindow) {
             OutputDebug('-- Activated`n')
@@ -121,17 +139,6 @@ class Picker extends Gui {
             if (!WinWaitActive('ahk_id ' this.Hwnd,, 0.5))
                 this.MakeItDisappear()
         }
-    }
-
-    OnEscape() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        this.MakeItDisappear()
-    }
-
-    OnClose() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        ExitApp()
-        ; this.MakeItDisappear()
     }
 
     OnSize(minmax, width, height) {
@@ -173,7 +180,62 @@ class Picker extends Gui {
         }
     }
 
+    mnuCommands_OnEvent(ItemName, *) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
+        switch ItemName {
+            Case 'Edit Document':
+                if (!this.cfg.document)
+                    this.cfg.document := this.cfg.csvFile
+                Run(this.cfg.document)
+            Case 'Open Editor':
+                this.edts.Start()
+            Case 'Reload':
+                Reload
+            Case 'Quit':
+                ExitApp
+            }
+    }
+
+    mnuOptions_OnEvent(ItemName, ItemPos, MyMenu) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
+        switch ItemName {
+            Case 'Change HotKey':
+                this.cfg.Pick_hotkey()
+            Case 'Change Icon':
+                this.cfg.Pick_icon()
+            Case 'Change CSV File':
+                csvFile := this.cfg.csvFile
+                this.cfg.Pick_csvFile()
+                if (csvFile != this.cfg.csvFile) {
+                    answer := MsgBox('Do you wish to reload the application?', 'Reload', '0x4 0x20 Owner' . this.Hwnd)
+                    if (answer = 'yes')
+                        Reload()
+                }
+            Case 'Change notes folder':
+                notesDir := this.cfg.notesDir
+                this.cfg.Pick_notesDir()
+                if (notesDir != this.cfg.notesDir) {
+                    answer := MsgBox('Do you wish to reload the application?', 'Reload', '0x4 0x20 Owner' . this.Hwnd)
+                    if (answer = 'yes')
+                        Reload()
+                }
+            Case 'Change document to edit':
+                this.cfg.Pick_document()
+            Case 'Show "*" category':
+                this.cfg.showCategoryAll := !this.cfg.showCategoryAll
+                if (this.cfg.showCategoryAll)
+                    MyMenu.Check('Show "*" category')
+                else
+                    MyMenu.Uncheck('Show "*" category')
+                this.Load_Categories()
+        }
+    }
+
     lvPicker_OnClick(lv, row) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         if (!row)
             return
         this.Hide()
@@ -183,10 +245,14 @@ class Picker extends Gui {
     }
 
     lvPicker_OnItemSelect(lv, row, selected) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         ToolTip(,,,1)
     }
 
     lvPicker_OnContextMenu(lv, row, isRightClick, x, y) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         static tooltipshowing := false
         if (!row)
             return
@@ -207,36 +273,48 @@ class Picker extends Gui {
     }
 
     lbCategories_OnChange(lb, *) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         this.Refresh_Picker(lb.Text)
     }
 
     lbCategories_OnDoubleClick(lb, *) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         if (lb.Text)
             this.cfg.defaultCategory := lb.Text
     }
 
     btnDoc_OnClick(*) {
-        Run(this.cfg.document)
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
+        if (!cfg.document)
+            cfg.document := cfg.csvFile
+        Run(cfg.document)
     }
 
     btnEdit_OnClick(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         this.edts.Start()
     }
 
     btnReload_OnClick(*) {
-        Reload
-    }
+        OutputDebug('-- ' A_ThisFunc '()`n')
 
-    btnQuit_OnClick(*) {
-        ExitApp
+        Reload()
     }
 
     edtNote_OnChange(edt, *) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         if (this.currentNote)
             this.currentNote.Content := edt.Text
     }
 
     lbNote_OnChange(lb, *) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         if (!lb.Text)
             return
         if (this.currentNote) {
@@ -250,15 +328,21 @@ class Picker extends Gui {
     }
 
     btnRefreshNote_OnClick(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         this.Refresh_Notes()
     }
 
     btnNewNote_OnClick(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         this.ns.New()
         this.Refresh_Notes()
     }
 
     btnDelNote_OnClick(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         if (this.currentNote.Delete()) {
             this.edtNote.Enabled := false
             this.edtNote.Value := ''
@@ -269,26 +353,40 @@ class Picker extends Gui {
 ; #endregion Events
 
     Refresh_Notes() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         lbn := this.lbNote
         lbn.Delete()
         lbn.Add(this.ns.Titles)
     }
 
     Set_Category(category?) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         category := category ?? this.cfg.defaultCategory || this.lbCategories.Text
         this.lbCategories.Choose(category)
     }
 
     Load_Categories() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         lb := this.lbCategories
+        cat := lb.Text || 1
         cats := this.shortcuts.categories
+        lb.Delete()
         if (cfg.showCategoryAll)
             lb.Add(['*'])
         lb.Add(cats)
-        lb.Choose(1)
+        try
+            lb.Choose(cat)
+        catch
+            lb.Choose(1)
+        this.Refresh_Picker(lb.Text)
     }
 
     Refresh_Picker(category?) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         lv := this.lvPicker
         category := category ?? this.lbCategories.Text
         lv.Delete()
@@ -303,6 +401,8 @@ class Picker extends Gui {
     }
 
     MakeItAppear() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         x := y := w := h:= 0
         this.GetPos(,,&w, &h)
         mon := Get_CurrentMonitor()
@@ -315,11 +415,15 @@ class Picker extends Gui {
     }
     
     MakeItDisappear() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         AnimateWindow(this.Hwnd, 150, AW_HIDE + RandFX())
         this.Hide()
     }
     
     FollowMouse() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+
         x := y := w := h:= 0
         this.GetPos(,,&w, &h)
         mon := Get_CurrentMonitor()
@@ -329,12 +433,6 @@ class Picker extends Gui {
     }
 }
 
-
-Setup_HotKey(hk) {
-    Hotkey(hk, Showup_HotKey)
-    Hotkey(hk . ' UP', Showup_HotKey)
-}
-
 Showup_HotKey(hk) {
     static skipUP := false
     ui := view
@@ -342,7 +440,7 @@ Showup_HotKey(hk) {
     if (!isUP) {
         skipUP := false
         SetTimer(longpress, -500)
-        KeyWait(hk)
+        KeyWait(hk, 'D T1')
     }
     if (isUP and !skipUP) {
         SetTimer(longpress, 0)
