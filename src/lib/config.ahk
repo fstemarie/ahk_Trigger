@@ -22,15 +22,29 @@ Class Config {
             }
             return this._hotkey
         }
+        set => IniWrite(value, this.cfgFile, 'Configuration', 'hotkey')
     }
 
     icon {
         get {
             if (!this._icon) {
-                this._icon := IniRead(this.cfgFile, 'Configuration', 'icon', 'trayicon.ico')
+                this._icon := IniRead(this.cfgFile, 'Configuration', 'icon', 'trigger.ico')
             }
             return this._icon
 
+        }
+        set {
+            if (value) {
+                if (FileExist(value)) {
+                    IniWrite(value, this.cfgFile, 'Configuration', 'icon')
+                    this._icon := value
+                } else {
+                    throw 'File must exist'
+                }
+            } else {
+                IniWrite('', this.cfgFile, 'Configuration', 'icon')
+                this._icon := ''
+            }
         }
     }
 
@@ -45,6 +59,8 @@ Class Config {
             if (FileExist(value)) {
                 IniWrite(value, this.cfgFile, 'Configuration', 'csvFile')
                 this._csvFile := value
+            } else if (!value) {
+                return
             } else {
                 throw 'File must exist'
             }
@@ -62,6 +78,8 @@ Class Config {
             if (value and DirExist(value)) {
                 IniWrite(value, this.cfgFile, 'Configuration', 'notesDir')
                 this._notesDir := value
+            } else if (!value) {
+                return
             } else {
                 throw 'Notes folder must exist'
             }
@@ -71,31 +89,34 @@ Class Config {
     document {
         get {
             if (!this._document) {
-                this._document := IniRead(this.cfgFile, 'Configuration', 'document', this.csvFile)
+                this._document := IniRead(this.cfgFile, 'Configuration', 'document', '')
             }
             return this._document
         }
         set {
-            if (InStr(FileExist(value), 'N')) {
-                IniWrite(value, this.cfgFile, 'Configuration', 'document')
-                this._document := value
+            if (value) {
+                if (FileExist(value)) {
+                    IniWrite(value, this.cfgFile, 'Configuration', 'document')
+                } else {
+                    throw 'Document must exist'
+                }
             } else {
-                throw 'Document must exist'
+                IniWrite(this.cfgFile, 'Configuration', 'document', '')
             }
+            this._document := value
         }
     }
 
     showCategoryAll {
         get {
             if (!this._showCategoryAll) {
-                this._showCategoryAll := IniRead(this.cfgFile, 'Configuration', 'showCategoryAll', '')
+                this._showCategoryAll := IniRead(this.cfgFile, 'Configuration', 'showCategoryAll', false)
             }
             return this._showCategoryAll
-
         }
         set {
-            IniWrite(value, this.cfgFile, 'Configuration', 'showCategoryAll')
-            this._showCategoryAll := value
+            IniWrite(value?true:false, this.cfgFile, 'Configuration', 'showCategoryAll')
+            this._showCategoryAll := value?true:false
         }
     }
 
@@ -105,7 +126,6 @@ Class Config {
                 this._defaultCategory := IniRead(this.cfgFile, 'Configuration', 'defaultCategory', '')
             }
             return this._defaultCategory
-
         }
         set {
             IniWrite(value, this.cfgFile, 'Configuration', 'defaultCategory')
@@ -113,14 +133,32 @@ Class Config {
         }
     }
 
+    Pick_hotkey() {
+        answer := InputBox('Enter the desired HotKey', 'Enter HotKey')
+        if (answer.Result = 'OK') {
+            this.hotkey := answer.Value
+            Reload()
+        }
+    }
+
+    Pick_icon() {
+        filename := FileSelect((1 + 2), A_ScriptDir, 'Choose your icon', 'ICO File (*.ico)',)
+        if (filename) {
+            this.icon := filename
+        }
+    }
+
     Pick_csvFile() {
         filename := FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
         if (filename) {
             this.csvFile := filename
+            Reload()
         } else {
-            OutputDebug('No CSV File selected')
-            MsgBox('HotStrings.ahk - No CSV File', 'You MUST select a CSV File', 16)
-            ExitApp(1)
+            if (!this.csvFile or !FileExist(this.csvFile)) {
+                OutputDebug('No CSV File selected')
+                MsgBox('You MUST select a CSV File', 'No CSV File', 16)
+                ExitApp(1)
+            }
         }
     }
 
@@ -128,10 +166,13 @@ Class Config {
         dirname := FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
         if (dirname) {
             this.notesDir := dirname
+            Reload()
         } else {
-            OutputDebug('No notes folder selected')
-            MsgBox('HotStrings.ahk - No notes Folder', 'You MUST select a notes folder', 16)
-            ExitApp(1)
+            if (!this.notesDir or !DirExist(this.notesDir)) {
+                OutputDebug('No notes folder selected')
+                MsgBox('You MUST select a notes folder', 'No notes Folder', 16)
+                ExitApp(1)
+            }
         }
     }
 
@@ -145,9 +186,6 @@ Class Config {
     static Load_Config(cfgFile) {
         OutputDebug('-- ' A_ThisFunc '()`n')
 
-        try {
-            FileInstall("config.ini", "trigger.ini", 0)
-        }
         cfg := Config(cfgFile)
         if (!cfg.csvFile or !FileExist(cfg.csvFile)) {
             cfg.Pick_csvFile()
