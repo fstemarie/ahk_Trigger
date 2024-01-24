@@ -73,25 +73,25 @@ class ConfigUI extends Gui {
 	}
 
 	btnBrowseIcon_OnClick(*) {
-		icon := cfg.Pick_icon()
+		icon := this.cfg.Pick_icon()
 		if (icon and icon != cfg.icon)
 			this.txtIcon.Text := icon
 	}
 
 	btnBrowseCSV_OnClick(*) {
-		csv := cfg.Pick_csvFile()
+		csv := this.cfg.Pick_csvFile()
         if (csv and csv != cfg.csvFile)
             this.txtCSV.Text := csv
 	}
 
 	btnBrowseNotes_OnClick(*) {
-		notes := cfg.Pick_notesDir()
+		notes := this.cfg.Pick_notesDir()
         if (notes and notes != cfg.notesDir)
             this.txtDoc.Text := notes
 	}
 
 	btnBrowseDoc_OnClick(*) {
-		doc := cfg.Pick_document()
+		doc := this.cfg.Pick_document()
 		if (doc and doc != cfg.document)
 			this.txtDoc.Text := doc
 	}
