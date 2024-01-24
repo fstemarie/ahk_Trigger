@@ -2,7 +2,7 @@
 
 #include <base64>
 
-#HotIf A_UserName = 'francois' and A_ComputerName = 'HX90'
+#HotIf A_UserName = 'francois' and A_ComputerName = 'HX90' and WinActive('Virtual Desktop V2 - Desktop Viewer')
 :*:###:: {
     static password := ''
 
