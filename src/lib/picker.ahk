@@ -62,17 +62,14 @@ class Picker extends Gui {
         this.MenuBar := MenuBar()
         this.MenuBar.Add('Commands', mnuCommands)
         this.MenuBar.Add('Options', mnuOptions)
-
         ; Tabs
         w := totalWidth, h := totalHeight, tabsHeight := 35
         options := Format('x0 y0 w{} h{} ', w, h)
         this.tabs := this.Add('Tab3', options, ['Picker', 'Notes'])
-
-
         ; lvPicker
         buttonHeight := 50
         w := (totalWidth * 0.80) - 2*mx
-        h := totalHeight - tabsHeight - 3*buttonHeight - 6*my
+        h := totalHeight - tabsHeight - 3*buttonHeight - 5*my
         options := Format('w{} h{} ', w, h)
         options .= Format('+LV{} -LV{} ', LVS_EX_TRACKSELECT, LVS_EX_HEADERDRAGDROP)
         options .= '+Grid -Multi Section'
@@ -83,25 +80,21 @@ class Picker extends Gui {
         this.lvPicker.OnEvent('ItemSelect', 'lvPicker_OnItemSelect')
         this.lvPicker.OnEvent('ContextMenu', 'lvPicker_OnContextMenu')
         PostMessage(LVM_SETHOVERTIME, 0, 1,, 'ahk_id ' this.lvPicker.Hwnd)
-
-        ; edtPreview
+        ; txtPreview
         h := 3*buttonHeight + 2*my
-        options := Format('xs wp h{} +ReadOnly', h)
-        this.edtPreview := this.Add('Edit', options)
-
+        options := Format('xs wp h{} +Border +BackgroundWhite', h)
+        this.txtPreview := this.Add('Text', options)
         ; lbCategories
         w := (totalWidth * 0.20) - 2*mx
-        h := totalHeight - tabsHeight - 3*buttonHeight - 6*my
+        h := totalHeight - tabsHeight - 3*buttonHeight - 5*my
         options := Format('ys w{} h{} {} -Border Sort', w, h, LBS_NOINTEGRALHEIGHT)
         this.lbCategories := this.Add('ListBox', options)
         this.lbCategories.OnEvent('Change', 'lbCategories_OnChange')
         this.lbCategories.OnEvent('DoubleClick', 'lbCategories_OnDoubleClick')
-
         ; btnDoc
-        h := buttonHeight ; - 2*my
+        h := buttonHeight
         options := Format('xp wp h{}', h, LBS_NOINTEGRALHEIGHT)
         this.btnDoc := this.Add('Button', options, 'Edit &Doc')
-        ; this.btnDoc.OnEvent('Click', 'btnDoc_OnClick')
         this.btnDoc.OnEvent('Click', (*)=>Run(this.cfg.document))
         ; btnEdit
         options := 'xp wp hp'
@@ -110,35 +103,31 @@ class Picker extends Gui {
         ; btnReload
         this.btnReload := this.Add('Button', options, '&Reload')
         this.btnReload.OnEvent('Click', (*)=>Reload())
-
-
-
-
         this.tabs.UseTab('Notes')
         ; edtNote
-        w := (totalWidth * 0.80) - 2*mx, h := totalHeight - 50 - 2*my - tabsHeight
-        options := Format('w{} h{} +WantTab Section', w, h)
+        w := (totalWidth * 0.80) - 2*mx
+        h := totalHeight - tabsHeight - 2*my
+        options := Format('w{} h{} +WantTab', w, h)
         this.edtNote := this.Add('Edit', options)
         this.edtNote.Enabled := false
         this.edtNote.OnEvent('Change', 'edtNote_OnChange')
         ; lbNote
+        h := totalHeight - tabsHeight - 3*buttonHeight - 5*my
         w := (totalWidth * 0.20) - 2*mx
-        options := Format('ys w{} hp {} -Border +Sort', w, LBS_NOINTEGRALHEIGHT)
-        ; options := Format('yp w{} hp -Border +Sort', w)
+        options := Format('yp w{} h{} {} -Border +Sort Section', w, h, LBS_NOINTEGRALHEIGHT)
         this.lbNote := this.Add('ListBox', options)
         this.lbNote.OnEvent('Change', 'lbNote_OnChange')
-
         ; btnRefreshNote
-        h := 50 - 2*my
-        options := Format('xs w150 h{} Section', h)
+        h := buttonHeight
+        options := Format('xs wp h{} Section', h)
         this.btnRefreshNote := this.Add('Button', options, '&Refresh')
         this.btnRefreshNote.OnEvent('Click', 'btnRefreshNote_OnClick')
         ; btnNewNote
-        options := 'yp wp hp'
+        options := 'xp wp hp'
         this.btnNewNote := this.Add('Button', options, '&New')
         this.btnNewNote.OnEvent('Click', 'btnNewNote_OnClick')
         ; btnDelNote
-        options := 'yp wp hp'
+        options := 'xp wp hp'
         this.btnDelNote := this.Add('Button', options, '&Delete')
         this.btnDelNote.OnEvent('Click', 'btnDelNote_OnClick')
     }
@@ -220,23 +209,26 @@ class Picker extends Gui {
             Case 'Change Icon':
                 this.cfg.Pick_icon()
             Case 'Change CSV File':
-                csvFile := this.cfg.csvFile
-                this.cfg.Pick_csvFile()
-                if (csvFile != this.cfg.csvFile) {
+                csv := this.cfg.Pick_csvFile()
+                if (csv != this.cfg.csvFile) {
+                    this.cfg.csvFile := csv
                     answer := MsgBox('Do you wish to reload the application?', 'Reload', '0x4 0x20 Owner' . this.Hwnd)
                     if (answer = 'yes')
                         Reload()
                 }
             Case 'Change notes folder':
-                notesDir := this.cfg.notesDir
-                this.cfg.Pick_notesDir()
+                notesDir := this.cfg.Pick_notesDir()
                 if (notesDir != this.cfg.notesDir) {
+                    this.cfg.notesDir := notesDir
                     answer := MsgBox('Do you wish to reload the application?', 'Reload', '0x4 0x20 Owner' . this.Hwnd)
                     if (answer = 'yes')
                         Reload()
                 }
             Case 'Change document to edit':
-                this.cfg.Pick_document()
+                doc := this.cfg.Pick_document()
+                if (doc != this.cfg.document) {
+                    this.cfg.document := doc
+                }
             Case 'Show "*" category':
                 this.cfg.showCategoryAll := !this.cfg.showCategoryAll
                 if (this.cfg.showCategoryAll)
@@ -260,7 +252,7 @@ class Picker extends Gui {
 
     lvPicker_OnItemSelect(lv, row, selected) {
         if (selected)
-            this.edtPreview.Value := lv.GetText(row, 2)
+            this.txtPreview.Value := lv.GetText(row, 2)
         else
             ToolTip(,,,1)
     }
@@ -296,28 +288,12 @@ class Picker extends Gui {
     lbCategories_OnDoubleClick(lb, *) {
         OutputDebug('-- ' A_ThisFunc '()`n')
 
-        if (lb.Text)
-            this.cfg.defaultCategory := lb.Text
-    }
-
-    btnDoc_OnClick(*) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-
-        if (!cfg.document)
-            cfg.document := cfg.csvFile
-        Run(cfg.document)
-    }
-
-    btnEdit_OnClick(*) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-
-        this.edts.Start()
-    }
-
-    btnReload_OnClick(*) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-
-        Reload()
+        if (lb.Text) {
+            if (this.cfg.defaultCategory != lb.Text)
+                this.cfg.defaultCategory := lb.Text
+            else
+                this.cfg.defaultCategory := ''
+        }
     }
 
     edtNote_OnChange(edt, *) {
@@ -377,8 +353,12 @@ class Picker extends Gui {
 
     Set_Category(category?) {
         OutputDebug('-- ' A_ThisFunc '()`n')
-
-        category := category ?? this.cfg.defaultCategory || this.lbCategories.Text
+        if (IsSet(category) and category)
+            try {
+                this.lbCategories.Choose(category)
+                return
+            }
+        category := this.cfg.defaultCategory || this.lbCategories.Text || 1
         this.lbCategories.Choose(category)
     }
 
@@ -386,17 +366,14 @@ class Picker extends Gui {
         OutputDebug('-- ' A_ThisFunc '()`n')
 
         lb := this.lbCategories
-        cat := lb.Text || 1
+        cat := lb.Text
         cats := this.shortcuts.categories
         lb.Delete()
         if (cfg.showCategoryAll)
             lb.Add(['*'])
         lb.Add(cats)
-        try
-            lb.Choose(cat)
-        catch
-            lb.Choose(1)
-        this.Refresh_Picker(lb.Text)
+        this.Set_Category(cat)
+        this.Refresh_Picker()
     }
 
     Refresh_Picker(category?) {
