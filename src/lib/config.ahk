@@ -14,7 +14,7 @@ Class Config {
     }
 
     icon {
-        get => IniRead(this.cfgFile, 'Configuration', 'icon', 'trigger.ico')
+        get => IniRead(this.cfgFile, 'Configuration', 'icon', '')
         set {
             if (value)
                 if (FileExist(value))
@@ -25,7 +25,7 @@ Class Config {
     }
 
     csvFile {
-        get => IniRead(this.cfgFile, 'Configuration', 'csvFile', 'trigger.csv')
+        get => IniRead(this.cfgFile, 'Configuration', 'csvFile', '')
         set {
             if (value)
                 if (FileExist(value))
@@ -36,7 +36,7 @@ Class Config {
     }
 
     notesDir {
-        get => IniRead(this.cfgFile, 'Configuration', 'notesDir', 'notes')
+        get => IniRead(this.cfgFile, 'Configuration', 'notesDir', '')
         set {
             if (value)
                 if (DirExist(value))
@@ -68,65 +68,32 @@ Class Config {
     }
 
     Pick_hotkey() {
-        answer := InputBox('Enter the desired HotKey', 'Enter HotKey')
-        if (answer.Result = 'OK') {
-            this.hotkey := answer.Value
-            Reload()
-        }
+        OutputDebug('-- ' A_ThisFunc '()`n')
+        return InputBox('Enter the desired HotKey', 'Enter HotKey')
     }
 
     Pick_icon() {
-        filename := FileSelect((1 + 2), A_ScriptDir, 'Choose your icon', 'ICO File (*.ico)',)
-        if (filename) {
-            this.icon := filename
-        }
+        OutputDebug('-- ' A_ThisFunc '()`n')
+        return FileSelect((1 + 2), A_ScriptDir, 'Choose your icon', 'ICO File (*.ico)',)
     }
 
     Pick_csvFile() {
-        filename := FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
-        if (filename) {
-            this.csvFile := filename
-            Reload()
-        } else {
-            if (!this.csvFile or !FileExist(this.csvFile)) {
-                OutputDebug('No CSV File selected')
-                MsgBox('You MUST select a CSV File', 'No CSV File', 16)
-                ExitApp(1)
-            }
-        }
+        OutputDebug('-- ' A_ThisFunc '()`n')
+        return FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
     }
 
     Pick_notesDir() {
-        dirname := FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
-        if (dirname) {
-            this.notesDir := dirname
-            Reload()
-        } else {
-            if (!this.notesDir or !DirExist(this.notesDir)) {
-                OutputDebug('No notes folder selected')
-                MsgBox('You MUST select a notes folder', 'No notes Folder', 16)
-                ExitApp(1)
-            }
-        }
+        OutputDebug('-- ' A_ThisFunc '()`n')
+        return FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
     }
 
     Pick_document() {
-        filename := FileSelect((1 + 2), A_MyDocuments, 'Choose the document to edit')
-        if (filename) {
-            this.document := filename
-        }
+        OutputDebug('-- ' A_ThisFunc '()`n')
+        return FileSelect((1 + 2), A_MyDocuments, 'Choose the document to edit')
     }
 
     static Load_Config(cfgFile) {
         OutputDebug('-- ' A_ThisFunc '()`n')
-
-        cfg := Config(cfgFile)
-        if (!cfg.csvFile or !FileExist(cfg.csvFile)) {
-            cfg.Pick_csvFile()
-        }
-        if (!cfg.notesDir or !DirExist(cfg.notesDir)) {
-            cfg.Pick_notesDir()
-        }
-        return cfg
+        return Config(cfgFile)
     }
 }
