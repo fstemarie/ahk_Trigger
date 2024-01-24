@@ -3,8 +3,6 @@
 ;AHKv2converter creator: github.com/mmikeww/AHK-v2-script-converter
 ;Easy_AutoGUI_for_AHKv2 github.com/samfisherirl/Easy-Auto-GUI-for-AHK-v2
 
-#Include "config.ahk"
-
 ; TODO ajouter un tag aux shortcuts pour utiliser le clipboard au lieu d'un send
 
 class ConfigUI extends Gui {
