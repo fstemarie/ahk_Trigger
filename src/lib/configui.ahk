@@ -1,16 +1,21 @@
 ﻿#Requires Autohotkey v2
-;AutoGUI 2.5.8 creator: Alguimist autohotkey.com/boards/viewtopic.php?f=64&t=89901
-;AHKv2converter creator: github.com/mmikeww/AHK-v2-script-converter
-;Easy_AutoGUI_for_AHKv2 github.com/samfisherirl/Easy-Auto-GUI-for-AHK-v2
 
 ; TODO ajouter un tag aux shortcuts pour utiliser le clipboard au lieu d'un send
 
 class ConfigUI extends Gui {
 	__New(cfg) {
-        options := '+OwnDialogs +MinSize628x150 -Resize -MinimizeBox -MaximizeBox' 
+        options := '+OwnDialogs +MinSize628x150 -Resize -SysMenu' 
         super.__New(options, 'Configuration', this)
 		this.cfg := cfg
 		this.Build()
+	}
+
+	static Show_ConfigUI(cfg, parent) {
+		cfgui := ConfigUI(cfg)
+		cfgui.parent := parent
+		cfgui.Opt('+Owner' parent.Hwnd)
+		parent.Disabled := true
+		cfgui.Show('autosize center')
 	}
 
 	Build() {
@@ -29,6 +34,7 @@ class ConfigUI extends Gui {
 		w := 200
 		options := Format('ys w{} h{} Limit128', w, h)
 		this.hk := this.AddHotkey(options)
+		this.hk.Value := this.cfg.hotkey
 
 		w := 600
 		options := Format('xp w{} h{} +0x200 +Border +BackgroundWhite Section', w, h)
@@ -65,9 +71,8 @@ class ConfigUI extends Gui {
 		btnOk.OnEvent('Click', 'btnOk_OnClick')
 		options := Format('yp w{} h{}', w, h)
 		btnCancel := this.AddButton(options, "&Cancel")
-		btnCancel.OnEvent('Click', 'btnCancel_OnClick')
-		this.OnEvent('Close', (*) => ExitApp())
-		this.Show('autosize hide center')
+		btnCancel.OnEvent('Click', (*)=>this.Cancel())
+		this.OnEvent('Close', (*)=>this.Cancel())
 	}
 
 	btnBrowseIcon_OnClick(*) {
@@ -122,10 +127,12 @@ class ConfigUI extends Gui {
 			if (answer = 'yes')
 				Reload()
 			else
+				this.Disabled := false
 				this.Destroy()
 	}
 
-	btnCancel_OnClick(*) {
+	Cancel() {
+		this.Disabled := false
 		this.Destroy()
 	}
 }
