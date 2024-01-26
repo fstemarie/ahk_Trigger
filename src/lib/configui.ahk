@@ -1,5 +1,7 @@
 ﻿#Requires Autohotkey v2
 
+#include <tools>
+
 ; TODO ajouter un tag aux shortcuts pour utiliser le clipboard au lieu d'un send
 
 class ConfigUI extends Gui {
@@ -11,14 +13,19 @@ class ConfigUI extends Gui {
 	}
 
 	static Show_ConfigUI(cfg, parent) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
 		cfgui := ConfigUI(cfg)
 		cfgui.parent := parent
 		cfgui.Opt('+Owner' parent.Hwnd)
+		x := y := w := y:= 0, mon := Get_CurrentMonitor()
+		cfgui.GetPos(&x, &y, &w, &h)
+		Find_Center(&x, &y, w, h, mon)
 		parent.Disabled := true
-		cfgui.Show('autosize center')
+		cfgui.Show(Format('x{} y{}', x, y))
 	}
 
 	Build() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
 		this.MarginX := mx := 15, this.MarginY := my := 15
 		this.Show('hide')
 		this.SetFont("s16 w600", "Calibri")
@@ -52,54 +59,57 @@ class ConfigUI extends Gui {
 		this.MarginX := 0
 		options := Format('ys w{} h{} Section', w, h)
 		btnBrowseIcon := this.AddButton(options, '...')
-		btnBrowseIcon.OnEvent('Click', 'btnBrowseIcon_OnClick')
+		btnBrowseIcon.OnEvent('Click', (*)=>this.Select_Icon())
 		options := Format('xs w{} h{}', w, h)
 		btnBrowseCSV := this.AddButton(options, '...')
-		btnBrowseCSV.OnEvent('Click', 'btnBrowseCSV_OnClick')
+		btnBrowseCSV.OnEvent('Click', (*)=>this.Select_CSV())
 		btnBrowseNotes := this.AddButton(options, '...')
-		btnBrowseNotes.OnEvent('Click', 'btnBrowseNotes_OnClick')
+		btnBrowseNotes.OnEvent('Click', (*)=>this.Select_Notes())
 		btnBrowseDoc := this.AddButton(options, '...')
-		btnBrowseDoc.OnEvent('Click', 'btnBrowseDoc_OnClick')
+		btnBrowseDoc.OnEvent('Click', (*)=>this.Select_Doc())
 		this.MarginX := mx
 
 		this.Show('autosize hide')
-		winw := ''
-		this.GetPos(,,&winw)
+		winw := '', this.GetPos(,,&winw)
 		w := 100, x := (winw - 2*w - mx) / 2
 		options := Format('x{} w{} h{}', x, w, h)
 		btnOk := this.AddButton(options, "&OK")
-		btnOk.OnEvent('Click', 'btnOk_OnClick')
+		btnOk.OnEvent('Click', (*)=>this.Submit())
 		options := Format('yp w{} h{}', w, h)
 		btnCancel := this.AddButton(options, "&Cancel")
-		btnCancel.OnEvent('Click', (*)=>this.Cancel())
-		this.OnEvent('Close', (*)=>this.Cancel())
+		btnCancel.OnEvent('Click', (*)=>this.Leave())
+		this.Show('autosize hide')
 	}
 
-	btnBrowseIcon_OnClick(*) {
-		icon := this.cfg.Pick_icon()
+	Select_Icon(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+		icon := FileSelect((1 + 2), A_ScriptDir, 'Choose your icon', 'ICO File (*.ico)',)
 		if (icon and icon != cfg.icon)
 			this.txtIcon.Text := icon
 	}
 
-	btnBrowseCSV_OnClick(*) {
-		csv := this.cfg.Pick_csvFile()
+	Select_CSV(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+		csv := FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
         if (csv and csv != cfg.csvFile)
             this.txtCSV.Text := csv
 	}
 
-	btnBrowseNotes_OnClick(*) {
-		notes := this.cfg.Pick_notesDir()
+	Select_Notes(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+		notes := FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
         if (notes and notes != cfg.notesDir)
             this.txtDoc.Text := notes
 	}
 
-	btnBrowseDoc_OnClick(*) {
-		doc := this.cfg.Pick_document()
+	Select_Doc(*) {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+		doc := FileSelect((1 + 2), A_MyDocuments, 'Choose the document to edit')
 		if (doc and doc != cfg.document)
 			this.txtDoc.Text := doc
 	}
 
-	btnOk_OnClick(*) {
+	Submit() {
 		cfg := this.cfg
 		dirty := false
 		if (this.hk.Text != cfg.hotkey) {
@@ -127,12 +137,12 @@ class ConfigUI extends Gui {
 			if (answer = 'yes')
 				Reload()
 			else
-				this.Disabled := false
-				this.Destroy()
+				this.Leave()
 	}
 
-	Cancel() {
-		this.Disabled := false
+	Leave() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
+		this.parent.Disabled := false
 		this.Destroy()
 	}
 }

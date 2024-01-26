@@ -67,31 +67,6 @@ Class Config {
         set => IniWrite(value, this.cfgFile, 'Configuration', 'defaultCategory')
     }
 
-    Pick_hotkey() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        return InputBox('Enter the desired HotKey', 'Enter HotKey')
-    }
-
-    Pick_icon() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        return FileSelect((1 + 2), A_ScriptDir, 'Choose your icon', 'ICO File (*.ico)',)
-    }
-
-    Pick_csvFile() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        return FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
-    }
-
-    Pick_notesDir() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        return FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
-    }
-
-    Pick_document() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        return FileSelect((1 + 2), A_MyDocuments, 'Choose the document to edit')
-    }
-
     static Load_Config(cfgFile) {
         OutputDebug('-- ' A_ThisFunc '()`n')
         return Config(cfgFile)
