@@ -14,11 +14,10 @@ class ConfigUI extends Gui {
 
 	static Show_ConfigUI(cfg, parent) {
         OutputDebug('-- ' A_ThisFunc '()`n')
-        OutputDebug('-- ' A_ThisFunc '()`n')
 		cfgui := ConfigUI(cfg)
 		cfgui.parent := parent
 		cfgui.Opt('+Owner' parent.Hwnd)
-		x := y := w := y:= 0, mon := Get_CurrentMonitor()
+		x := y := w := h:= 0, mon := Get_CurrentMonitor()
 		cfgui.GetPos(&x, &y, &w, &h)
 		Find_Center(&x, &y, w, h, mon)
 		parent.Disabled := true
@@ -26,7 +25,6 @@ class ConfigUI extends Gui {
 	}
 
 	Build() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
         OutputDebug('-- ' A_ThisFunc '()`n')
 		this.MarginX := mx := 15, this.MarginY := my := 15
 		this.Show('hide')
@@ -62,16 +60,12 @@ class ConfigUI extends Gui {
 		options := Format('ys w{} h{} Section', w, h)
 		btnBrowseIcon := this.AddButton(options, '...')
 		btnBrowseIcon.OnEvent('Click', (*)=>this.Select_Icon())
-		btnBrowseIcon.OnEvent('Click', (*)=>this.Select_Icon())
 		options := Format('xs w{} h{}', w, h)
 		btnBrowseCSV := this.AddButton(options, '...')
 		btnBrowseCSV.OnEvent('Click', (*)=>this.Select_CSV())
-		btnBrowseCSV.OnEvent('Click', (*)=>this.Select_CSV())
 		btnBrowseNotes := this.AddButton(options, '...')
 		btnBrowseNotes.OnEvent('Click', (*)=>this.Select_Notes())
-		btnBrowseNotes.OnEvent('Click', (*)=>this.Select_Notes())
 		btnBrowseDoc := this.AddButton(options, '...')
-		btnBrowseDoc.OnEvent('Click', (*)=>this.Select_Doc())
 		btnBrowseDoc.OnEvent('Click', (*)=>this.Select_Doc())
 		this.MarginX := mx
 
@@ -90,37 +84,38 @@ class ConfigUI extends Gui {
 	Select_Icon(*) {
         OutputDebug('-- ' A_ThisFunc '()`n')
 		icon := FileSelect((1 + 2), A_ScriptDir, 'Choose your icon', 'ICO File (*.ico)',)
-		if (icon and icon != cfg.icon)
+		if (icon and icon != this.cfg.icon)
 			this.txtIcon.Text := icon
 	}
 
 	Select_CSV(*) {
         OutputDebug('-- ' A_ThisFunc '()`n')
 		csv := FileSelect((1 + 2), A_MyDocuments, 'Choose your HotStrings CSV file', 'CSV File (*.csv)')
-        if (csv and csv != cfg.csvFile)
+        if (csv and csv != this.cfg.csvFile)
             this.txtCSV.Text := csv
 	}
 
 	Select_Notes(*) {
         OutputDebug('-- ' A_ThisFunc '()`n')
 		notes := FileSelect('D1', A_MyDocuments, 'Choose a folder for notes')
-        if (notes and notes != cfg.notesDir)
+        if (notes and notes != this.cfg.notesDir)
             this.txtDoc.Text := notes
 	}
 
 	Select_Doc(*) {
         OutputDebug('-- ' A_ThisFunc '()`n')
 		doc := FileSelect((1 + 2), A_MyDocuments, 'Choose the document to edit')
-		if (doc and doc != cfg.document)
+		if (doc and doc != this.cfg.document)
 			this.txtDoc.Text := doc
 	}
 
 	Submit() {
+        OutputDebug('-- ' A_ThisFunc '()`n')
 		cfg := this.cfg
 		dirty := false
-		if (this.hk.Text != cfg.hotkey) {
+		if (this.hk.Value != cfg.hotkey) {
 			dirty := true
-			cfg.hotkey := this.hk.Text
+			cfg.hotkey := this.hk.Value
 		}
 		if (this.txtIcon != cfg.icon) {
 			dirty := true
@@ -135,7 +130,6 @@ class ConfigUI extends Gui {
 			cfg.notesDir := this.txtNotes.Text
 		}
 		if (this.txtDoc != cfg.document) {
-			dirty := true
 			cfg.document := this.txtDoc.Text
 		}
 		if (dirty)
