@@ -11,11 +11,15 @@ LVM_SETHOVERTIME := 0x1047
 LVS_EX_HEADERDRAGDROP := 0x10
 LVS_EX_TRACKSELECT := 0x8
 LBS_NOINTEGRALHEIGHT := 0x100
+BUTTONHEIGHT := 50
+MX := 5, MY := 5
+TABSHEIGHT := 35
 
 class Picker extends Gui {
     __New(shortcuts, cfg) {
-        options := '+OwnDialogs +MinSize628x150 -Resize -MinimizeBox -MaximizeBox' 
+        options := '+OwnDialogs +MinSize700x500 -Resize -MinimizeBox -MaximizeBox' 
         super.__New(options, 'Trigger', this)
+        this._disabled := false
         this.shortcuts := shortcuts
         this.cfg := cfg
         this.edts := Editors()
@@ -47,7 +51,7 @@ class Picker extends Gui {
         this.Show('Hide w1000 h600')
         this.SetFont('s16 bold', 'Calibri')
         this.BackColor := 'BDC3CB'
-        mx := this.MarginX := my := this.MarginY := 5
+        this.MarginX := MX, this.MarginY := MY
         OnMessage(WM_ACTIVATEAPP, ObjBindMethod(this, 'OnActivate'))
         this.OnEvent('Escape', (*)=>this.MakeItDisappear())
         this.OnEvent('Close', (*)=>ExitApp())
@@ -72,72 +76,73 @@ class Picker extends Gui {
         this.MenuBar.Add('Commands', mnuCommands)
         this.MenuBar.Add('Options', mnuOptions)
         ; Tabs
-        w := totalWidth, h := totalHeight, tabsHeight := 35
+        w := totalWidth, h := totalHeight
         options := Format('x0 y0 w{} h{} ', w, h)
-        this.tabs := this.Add('Tab3', options, ['Picker', 'Notes'])
+        this.tabs := this.AddTab3(options, ['Picker', 'Notes'])
         ; lvPicker
-        buttonHeight := 50
-        w := (totalWidth * 0.80) - 2*mx
-        h := totalHeight - tabsHeight - 3*buttonHeight - 5*my
+        w := (totalWidth * 0.80) - 2*MX
+        h := totalHeight - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
         options := Format('w{} h{} ', w, h)
         options .= Format('+LV{} -LV{} ', LVS_EX_TRACKSELECT, LVS_EX_HEADERDRAGDROP)
         options .= '+Grid -Multi Section'
-        this.lvPicker := this.Add('ListView', options)
+        this.lvPicker := this.AddListView(options)
         this.lvPicker.InsertCol(1, 150, 'Trigger')
         this.lvPicker.InsertCol(2,, 'Replacement')
         this.lvPicker.OnEvent('Click', 'lvPicker_OnClick')
         this.lvPicker.OnEvent('ItemSelect', 'lvPicker_OnItemSelect')
         this.lvPicker.OnEvent('ContextMenu', 'lvPicker_OnContextMenu')
         PostMessage(LVM_SETHOVERTIME, 0, 1,, 'ahk_id ' this.lvPicker.Hwnd)
+
         ; txtPreview
-        h := 3*buttonHeight + 2*my
-        options := Format('xs wp h{} +Border +BackgroundWhite', h)
-        this.txtPreview := this.Add('Text', options)
+        h := 3*BUTTONHEIGHT + 2*MY
+        options := Format('+Border +BackgroundWhite xs wp h{}', h)
+        this.txtPreview := this.AddText(options)
+
         ; lbCategories
-        w := (totalWidth * 0.20) - 2*mx
-        h := totalHeight - tabsHeight - 3*buttonHeight - 5*my
+        w := (totalWidth * 0.20) - 2*MX
+        h := totalHeight - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
         options := Format('ys w{} h{} {} -Border Sort', w, h, LBS_NOINTEGRALHEIGHT)
-        this.lbCategories := this.Add('ListBox', options)
+        this.lbCategories := this.AddListBox(options)
         this.lbCategories.OnEvent('Change', 'lbCategories_OnChange')
         this.lbCategories.OnEvent('DoubleClick', 'lbCategories_OnDoubleClick')
         ; btnDoc
-        h := buttonHeight
+        h := BUTTONHEIGHT
         options := Format('xp wp h{}', h, LBS_NOINTEGRALHEIGHT)
-        this.btnDoc := this.Add('Button', options, 'Edit &Doc')
+        this.btnDoc := this.AddButton(options, 'Edit &Doc')
         this.btnDoc.OnEvent('Click', (*)=>Run(this.cfg.document))
         ; btnEdit
         options := 'xp wp hp'
-        this.btnEdit := this.Add('Button', options, '&Text Editor')
+        this.btnEdit := this.AddButton(options, '&Text Editor')
         this.btnEdit.OnEvent('Click', (*)=>this.edts.Start())
         ; btnReload
-        this.btnReload := this.Add('Button', options, '&Reload')
+        this.btnReload := this.AddButton(options, '&Reload')
         this.btnReload.OnEvent('Click', (*)=>Reload())
         this.tabs.UseTab('Notes')
         ; edtNote
-        w := (totalWidth * 0.80) - 2*mx
-        h := totalHeight - tabsHeight - 2*my
+        w := (totalWidth * 0.80) - 2*MX
+        h := totalHeight - TABSHEIGHT - 2*MY
         options := Format('w{} h{} +WantTab', w, h)
-        this.edtNote := this.Add('Edit', options)
+        this.edtNote := this.AddEdit(options)
         this.edtNote.Enabled := false
         this.edtNote.OnEvent('Change', 'edtNote_OnChange')
         ; lbNote
-        h := totalHeight - tabsHeight - 3*buttonHeight - 5*my
-        w := (totalWidth * 0.20) - 2*mx
+        w := (totalWidth * 0.20) - 2*MY
+        h := totalHeight - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
         options := Format('yp w{} h{} {} -Border +Sort Section', w, h, LBS_NOINTEGRALHEIGHT)
-        this.lbNote := this.Add('ListBox', options)
+        this.lbNote := this.AddListBox(options)
         this.lbNote.OnEvent('Change', 'lbNote_OnChange')
         ; btnRefreshNote
-        h := buttonHeight
+        h := BUTTONHEIGHT
         options := Format('xs wp h{} Section', h)
-        this.btnRefreshNote := this.Add('Button', options, '&Refresh')
+        this.btnRefreshNote := this.AddButton(options, '&Refresh')
         this.btnRefreshNote.OnEvent('Click', 'btnRefreshNote_OnClick')
         ; btnNewNote
         options := 'xp wp hp'
-        this.btnNewNote := this.Add('Button', options, '&New')
+        this.btnNewNote := this.AddButton(options, '&New')
         this.btnNewNote.OnEvent('Click', 'btnNewNote_OnClick')
         ; btnDelNote
         options := 'xp wp hp'
-        this.btnDelNote := this.Add('Button', options, '&Delete')
+        this.btnDelNote := this.AddButton(options, '&Delete')
         this.btnDelNote.OnEvent('Click', 'btnDelNote_OnClick')
     }
 
@@ -153,8 +158,10 @@ class Picker extends Gui {
         static ogw, ogh ; Original gui width and height
         x := y := w := h := 0
 
+        ; If the original size of the gui and controls haven't been saved yet, save them
         if !IsSet(ogw) {
-            ogw := width, ogh := height
+            ogw := width, ogh := height ; Save the original size of the gui
+            ; Save the original size of each controls in the gui
             for ,ctrl in this {
                 ctrl.GetPos(&x, &y, &w, &h)
                 ctrl.origPos := {x: x, y: y, w: w, h: h}
@@ -162,28 +169,35 @@ class Picker extends Gui {
             return
         }
 
-        dx := dw := width - ogw
+        dx := dw := width - ogw ; deltas of the original position/size of the gui vs the new ones
         dy := dh := height - ogh
         for ,ctrl in [this.tabs, this.lvPicker, this.edtNote] {
-            ow := ctrl.origPos.w, oh := ctrl.origPos.h
-            w := (dw * 1) + ow, h := (dh * 1) + oh
+            ow := ctrl.origPos.w, w := (dw * 1) + ow
+            oh := ctrl.origPos.h, h := (dh * 1) + oh
             ctrl.Move(,, w, h)
         }
 
+        ctrl := this.txtPreview
+        {
+            ow := ctrl.origPos.w, w := (dw * 1) + ow
+            oy := ctrl.origPos.y, y := (dy * 1) + oy
+            ctrl.Move(, y, w,)
+        }
+
         for ,ctrl in [this.lbCategories, this.lbNote] {
-            ox := ctrl.origPos.x
-            oh := ctrl.origPos.h
+            ox := ctrl.origPos.x, oh := ctrl.origPos.h
             x := (dx * 1) + ox, h := (dh * 1) + oh
             ctrl.Move(x,,, h)
         }
 
         ; buttons
         ctrls := [this.btnDoc, this.btnEdit, this.btnReload
-            ,this.btnQuit, this.btnNewNote, this.btnDelNote, this.btnSaveNote]
+            , this.btnRefreshNote, this.btnNewNote, this.btnDelNote]
         for ,ctrl in ctrls {
+            ox := ctrl.origPos.x
             oy := ctrl.origPos.y
-            y := (dy * 1) + oy
-            ctrl.Move(, y,,)
+            x := (dx * 1) + ox, y := (dy * 1) + oy
+            ctrl.Move(x, y,,)
         }
     }
 
