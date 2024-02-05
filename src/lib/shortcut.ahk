@@ -1,10 +1,14 @@
 #Requires AutoHotkey v2.0
 
 Class Shortcut {
-    __New(trigger, replacement, category) {
+    __New(trigger, replacement, category, tags) {
         this._trigger := trigger
-        this._replacements := [replacement]
-        this._category := category
+        this._replacements := [{
+            replacement: replacement,
+            category: category,
+            tags: tags
+        }]
+        this._current := this._replacements[1]
     }
 
     Trigger {
@@ -12,33 +16,49 @@ Class Shortcut {
     }
 
     Replacement {
-        get {
-            rep := this._replacements.Pop()
-            this._replacements.InsertAt(1, rep)
-            return rep
-        }
-    }
-
-    Replacements {
-        get {
-            return this._replacements
-        }
+        get => this._current.replacement
     }
 
     Category {
-        get => this._category
+        get => this._current.category
     }
 
-    Add_Replacement(replacement) {
-        this._replacements.Push(replacement)
+    Tags {
+        get => this._current.tags
     }
 
-    Send_Replacement(*) {
-        Send(this.Replacement)
+    Replacements {
+        get => this._replacements
+    }
+
+    Add_Replacement(replacement, category, tags) {
+        this._replacements.Push({
+            replacement: replacement,
+            category: category,
+            tags: tags
+        })
+    }
+
+    Next() {
+        this._current := this._replacements.Pop()
+        this._replacements.InsertAt(1, this._current)
+    }
+
+    Send_Replacement() {
+        if (InStr(this.Tags, 'clip')) {
+            oldclip := ClipboardAll()
+            A_Clipboard := this.Replacement
+            Send('^v')
+            Sleep(50)
+            A_Clipboard := oldclip
+        } else if (InStr(this.Tags, 'cooked'))
+            Send(this.Replacement)
+        else
+            Send('{raw}' this.Replacement)
+        this.Next()
     }
 
     New_HotString() {
-        sender := ObjBindMethod(this, 'Send_Replacement')
-        Hotstring(':X:' this.Trigger, sender)
+        Hotstring(':X:' this.Trigger, (*)=>this.Send_Replacement())
     }
 }

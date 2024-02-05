@@ -35,7 +35,7 @@ class Shortcuts extends Map {
     
         csv := StrSplit(FileRead(csvFile), '`r`n')
         for line in csv {
-            trigger := replacement := category := treated := ''
+            trigger := replacement := category := tags := ''
             loop parse line, 'CSV' {
                 switch A_Index {
                     case 1: ; Trigger
@@ -44,8 +44,10 @@ class Shortcuts extends Map {
                         replacement := A_LoopField
                     case 3: ; Category
                         category := A_LoopField
-                    case 4: ; Category
-                        treated := A_LoopField
+                    case 4: ; tags
+                        tags := A_LoopField
+                        if (tags = 1)
+                            tags := 'cooked'
                     default:
                         continue
                 }
@@ -53,12 +55,10 @@ class Shortcuts extends Map {
             ; Remove rows that don't have all fields filled
             if (!trigger or !replacement or !category)
                 continue
-            if (!treated)
-                replacement := '{Raw}' . replacement
             if (shorts.Has(trigger))
-                shorts[trigger].Add_Replacement(replacement)
+                shorts[trigger].Add_Replacement(replacement, category, tags)
             else
-                shorts[trigger] := Shortcut(trigger, replacement, category)
+                shorts[trigger] := Shortcut(trigger, replacement, category, tags)
         }
         return shorts
     }
