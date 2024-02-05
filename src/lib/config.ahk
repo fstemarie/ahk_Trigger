@@ -57,14 +57,38 @@ Class Config {
         }
     }
 
+    defaultCategory {
+        get => IniRead(this.cfgFile, 'Configuration', 'defaultCategory', '')
+        set => IniWrite(value, this.cfgFile, 'Configuration', 'defaultCategory')
+    }
+
     showCategoryAll {
         get => IniRead(this.cfgFile, 'Configuration', 'showCategoryAll', false)
         set => IniWrite(value ? true : false, this.cfgFile, 'Configuration', 'showCategoryAll')
     }
 
-    defaultCategory {
-        get => IniRead(this.cfgFile, 'Configuration', 'defaultCategory', '')
-        set => IniWrite(value, this.cfgFile, 'Configuration', 'defaultCategory')
+    showPreview{
+        get => IniRead(this.cfgFile, 'Configuration', 'showPreview', false)
+        set => IniWrite(value ? true : false, this.cfgFile, 'Configuration', 'showPreview')
+    }
+
+    rememberSize {
+        get => IniRead(this.cfgFile, 'Configuration', 'rememberSize', false)
+        set {
+            IniWrite(value ? true : false, this.cfgFile, 'Configuration', 'rememberSize')
+            if (!value)
+                IniDelete(this.cfgFile, 'Size')
+        }
+    }
+
+    guiWidth {
+        get => IniRead(this.cfgFile, 'Size', 'guiWidth', '')
+        set => IniWrite(value, this.cfgFile, 'Size', 'guiWidth')
+    }
+
+    guiHeigth {
+        get => IniRead(this.cfgFile, 'Size', 'guiHeigth', '')
+        set => IniWrite(value, this.cfgFile, 'Size', 'guiHeigth')
     }
 
     static Load_Config(cfgFile) {
