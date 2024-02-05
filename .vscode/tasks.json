@@ -2,26 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build Updater",
-            "type": "process",
-            "command": "C:/Program Files/AutoHotkey/Compiler/Ahk2Exe.exe",
-            "args": [
-                "/compress",
-                "2",
-                "/in",
-                "${workspaceFolder}/src/trigger-update.ahk",
-                "/out",
-                "${workspaceFolder}/dist/trigger-update.exe"
-            ],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
-        },
-        {
             "label": "Build Application",
             "type": "process",
             "command": "C:/Program Files/AutoHotkey/Compiler/Ahk2Exe.exe",

@@ -21,18 +21,25 @@ view := Picker(shorts, cfg)
 return
 
 Self_Update() {
-    static NEW := 'trigger-new.exe'
-    static UPD := 'trigger-update.exe'
+    static NEW := A_ScriptDir '\trigger-new.exe'
+    static PS := Format('
+    (
+        $NEW = \"{}\"
+        $SCR = \"{}\"
+
+        Wait-Process -Id {} -TimeOut 5 -ErrorAction SilentlyContinue
+        If (Test-Path -Path \"$NEW\") {
+            Remove-Item \"$SCR\"
+            Rename-Item \"$NEW\" \"$SCR\"
+            & \"$SCR\"
+        }
+    )', NEW, A_ScriptFullPath, ProcessExist())
     if (!A_IsCompiled)
         return
-    if (FileExist(NEW) and !FileExist(UPD)) {
-        FileInstall('../dist/trigger-update.exe', UPD)
-        Run(UPD)
+    if (FileExist(NEW)) {
+        Run('powershell.exe -Command &{' PS ' }',, 'hide')
+        Sleep(1000)
         ExitApp()
-    }
-    if (!FileExist(NEW) and FileExist(UPD)) {
-        WinWaitClose('ahk_exe ' UPD)
-        FileDelete(UPD)
     }
     SetTimer(Self_Update, 10000)
 }
