@@ -23,11 +23,9 @@ Class Notes {
     Titles {
         get {
             titles := []
-            if (!titles.Length) {
-                loop files this.path '\*.txt' {
-                    title := SubStr(A_LoopFileName, 1, -4)
-                    titles.Push(title)
-                }
+            loop files this.path '\*.txt' {
+                title := SubStr(A_LoopFileName, 1, -4)
+                titles.Push(title)
             }
             return titles
         }
