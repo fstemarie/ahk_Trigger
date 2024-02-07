@@ -6,15 +6,6 @@
 #include <notes>
 #include <configui>
 
-WM_ACTIVATEAPP := 0x001C
-LVM_SETHOVERTIME := 0x1047
-LVS_EX_HEADERDRAGDROP := 0x10
-LVS_EX_TRACKSELECT := 0x8
-LBS_NOINTEGRALHEIGHT := 0x100
-HDS_NOSIZING  := 0x0800
-BUTTONHEIGHT := 50
-MX := 5, MY := 5
-TABSHEIGHT := 35
 
 class Picker extends Gui {
     __New(shortcuts, cfg) {
@@ -30,6 +21,11 @@ class Picker extends Gui {
         this.Build()
         this.Refresh_Categories()
         this.Refresh_Notes()
+        try ControlChooseIndex(1, this.lbNote.Hwnd)
+        OnMessage(WM_ACTIVATEAPP := 0x001C, ObjBindMethod(this, 'OnActivate'))
+        this.OnEvent('Escape', (*)=>this.MakeItDisappear())
+        this.OnEvent('Close', (*)=>this.Close())
+        this.OnEvent('Size', 'OnSize')
         Hotkey(cfg.hotkey, Showup_HotKey)
         Hotkey(cfg.hotkey . ' UP', Showup_HotKey)
     }
@@ -47,50 +43,35 @@ class Picker extends Gui {
         }
     }
 
-; #region Build
     Build() {
+        LVM_SETHOVERTIME := 0x1047
+        LVS_EX_HEADERDRAGDROP := 0x10
+        LVS_EX_TRACKSELECT := 0x8
+        LBS_NOINTEGRALHEIGHT := 0x100
+        HDS_NOSIZING  := 0x0800
+        BUTTONHEIGHT := 50
+        TABSHEIGHT := 35
+        MX := 5, MY := 5
+        TOTALWIDTH := 1000, TOTALHEIGHT := 600
+        x := y := w := h := 0
+        
         OutputDebug('-- ' A_ThisFunc '()`n')
-        this.Show('w1000 h600 hide')
+        this.Show(Format('w{} h{} hide', TOTALWIDTH, TOTALHEIGHT))
         this.SetFont('s16 bold', 'Calibri')
         this.BackColor := 'BDC3CB'
         this.MarginX := MX, this.MarginY := MY
-        OnMessage(WM_ACTIVATEAPP, ObjBindMethod(this, 'OnActivate'))
-        this.OnEvent('Escape', (*)=>this.MakeItDisappear())
-        this.OnEvent('Close', (*)=>this.Close())
-        this.OnEvent('Size', 'OnSize')
 
         ; Tabs
-        totalWidth := totalHeight := 0
-        this.GetClientPos(,,&totalWidth, &totalHeight)
-        w := totalWidth, h := totalHeight
-        options := Format('x0 y0 w{} h{} ', w, h)
+        options := Format('x0 y0 w{} h{}', TOTALWIDTH, TOTALHEIGHT)
         this.tabs := this.AddTab3(options, ['Picker', 'Notes'])
         this.tabs.anchor := 'wh'
-        this.Build_TabPicker()
-        this.Build_TabNotes
-        this.Build_Menu()
-        this.Show('autosize hide')
 
-        this.ShowPreview(this.cfg.ShowPreview)
-
-        if (this.cfg.rememberSize) {
-            w := this.cfg.guiWidth || 1000
-            h := this.cfg.guiHeigth || 600
-            this.Show(Format('w{} h{} hide', w, h))
-        } else
-            this.Show(Format('w{} h{} hide', w, h))
-    }
-
-    Build_TabPicker() {
-        totalWidth := totalHeight := 0
-        this.GetClientPos(,,&totalWidth, &totalHeight)
+; #region TabPicker
         this.tabs.UseTab('Picker')
-
-        ; lvPicker
-        w := 0.80*totalWidth - 2*MX
-        h := totalHeight - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
-        alth := totalHeight - TABSHEIGHT - 2*MY
-        options := Format('w{} h{} ', w, h)
+        w := 0.80 * (TOTALWIDTH - 3*MX)
+        h := TOTALHEIGHT - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
+        alth := TOTALHEIGHT - TABSHEIGHT - 2*MY
+        options := Format('x{} y{} w{} h{} ', MX, MY + TABSHEIGHT, w, h)
         options .= Format('+LV{} -LV{} ', LVS_EX_TRACKSELECT, LVS_EX_HEADERDRAGDROP)
         options .= '+Grid -Multi Section'
         this.lvPicker := this.AddListView(options)
@@ -106,75 +87,64 @@ class Picker extends Gui {
         hdrHwnd := SendMessage(LVM_GETHEADER := 0x101F, 0, 0, this.lvPicker)
         ControlSetStyle("+" . HDS_NOSIZING := 0x800, hdrHwnd)
 
-
-        ; txtPreview
         h := 3*BUTTONHEIGHT + 2*MY
-        options := Format('xs wp h{} +Border +BackgroundWhite', h)
+        options := Format('xs w{} h{} +BackgroundWhite', w, h)
         this.txtPreview := this.AddText(options)
         this.txtPreview.anchor := 'yw'
-        ; lbCategories
-        w := (totalWidth * 0.20) - 2*MX
-        h := totalHeight - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
-        options := Format('ys w{} h{} {} -Border Sort', w, h, LBS_NOINTEGRALHEIGHT)
+
+        w := 0.20 * (TOTALWIDTH - 3*MX)
+        h := TOTALHEIGHT - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
+        options := Format('ys w{} h{} {} Sort', w, h, LBS_NOINTEGRALHEIGHT)
         this.lbCategories := this.AddListBox(options)
         this.lbCategories.anchor := 'xh'
         this.lbCategories.OnEvent('Change', 'lbCategories_OnChange')
         this.lbCategories.OnEvent('DoubleClick', 'lbCategories_OnDoubleClick')
-        ; btnDoc
+
         h := BUTTONHEIGHT
         options := Format('xp wp h{}', h, LBS_NOINTEGRALHEIGHT)
         this.btnDoc := this.AddButton(options, 'Edit &Doc')
         this.btnDoc.anchor := 'xy'
         this.btnDoc.OnEvent('Click', (*)=>Run(this.cfg.document))
-        ; btnEdit
         options := 'xp wp hp'
         this.btnEdit := this.AddButton(options, '&Text Editor')
         this.btnEdit.anchor := 'xy'
         this.btnEdit.OnEvent('Click', (*)=>this.edts.Start())
-        ; btnReload
         this.btnReload := this.AddButton(options, '&Reload')
         this.btnReload.anchor := 'xy'
         this.btnReload.OnEvent('Click', (*)=>Reload())
-    }
 
-    Build_TabNotes() {
-        totalWidth := totalHeight := 0
-        this.GetClientPos(,,&totalWidth, &totalHeight)
+; #endregion TabPicker
+; #region TabNotes
         this.tabs.UseTab('Notes')
-        ; edtNote
-        w := (totalWidth * 0.80) - 2*MX
-        h := totalHeight - TABSHEIGHT - 2*MY
-        options := Format('w{} h{} +WantTab', w, h)
+        w := 0.80 * (TOTALWIDTH - 3*MX)
+        h := TOTALHEIGHT - TABSHEIGHT - 2*MY
+        options := Format('x{} y{} w{} h{} +WantTab', MX, MY + TABSHEIGHT, w, h)
         this.edtNote := this.AddEdit(options)
         this.edtNote.anchor := 'wh'
         this.edtNote.Enabled := false
         this.edtNote.OnEvent('Change', 'edtNote_OnChange')
-        ; lbNote
-        w := (totalWidth * 0.20) - 2*MY
-        h := totalHeight - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
-        options := Format('yp w{} h{} {} -Border +Sort Section', w, h, LBS_NOINTEGRALHEIGHT)
+
+        w := 0.20 * (TOTALWIDTH - 3*MX)
+        h := TOTALHEIGHT - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
+        options := Format('yp w{} h{} {} +Sort Section', w, h, LBS_NOINTEGRALHEIGHT)
         this.lbNote := this.AddListBox(options)
         this.lbNote.anchor := 'xh'
         this.lbNote.OnEvent('Change', 'lbNote_OnChange')
-        ; btnRefreshNote
+
         h := BUTTONHEIGHT
         options := Format('xs wp h{} Section', h)
         this.btnRefreshNote := this.AddButton(options, '&Refresh')
         this.btnRefreshNote.anchor := 'xy'
         this.btnRefreshNote.OnEvent('Click', 'btnRefreshNote_OnClick')
-        ; btnNewNote
         options := 'xp wp hp'
         this.btnNewNote := this.AddButton(options, '&New')
         this.btnNewNote.anchor := 'xy'
         this.btnNewNote.OnEvent('Click', 'btnNewNote_OnClick')
-        ; btnDelNote
-        options := 'xp wp hp'
         this.btnDelNote := this.AddButton(options, '&Delete')
         this.btnDelNote.anchor := 'xy'
         this.btnDelNote.OnEvent('Click', 'btnDelNote_OnClick')
-    }
-
-    Build_Menu() {
+; #endregion TabNotes
+; #region Menu
         menuHandler := ObjBindMethod(this, 'mnuCommands_OnEvent')
         mnuCommands := Menu()
         mnuCommands.Add('Edit Document', menuHandler)
@@ -197,8 +167,17 @@ class Picker extends Gui {
         this.MenuBar := MenuBar()
         this.MenuBar.Add('Commands', mnuCommands)
         this.MenuBar.Add('Options', mnuOptions)
+; #endregion Menu
+
+        ; this.Show('hide')
+        this.ShowPreview(this.cfg.ShowPreview)
+        w := TOTALWIDTH, h := TOTALHEIGHT
+        if (this.cfg.rememberSize) {
+            w := this.cfg.guiWidth || TOTALWIDTH
+            h := this.cfg.guiHeigth || TOTALHEIGHT
+        }
+        this.Show(Format('w{} h{} hide', w, h))
     }
-; #endregion Build
 
 ; #region Events
     OnActivate(activated, thread, msg, hwnd) {
@@ -206,6 +185,8 @@ class Picker extends Gui {
             if (!WinWaitActive('ahk_id ' this.Hwnd,, 1)) {
                 this.MakeItDisappear()
             }
+        if (activated and hwnd = this.Hwnd)
+            WinWaitActive('ahk_id ' this.Hwnd)
     }
 
     OnSize(minmax, width, height) {
@@ -239,6 +220,8 @@ class Picker extends Gui {
                 oh := ctrl.origPos.h, h := (dh * 1) + oh
             ctrl.Move(x, y, w, h)
         }
+        this.lvPicker.ModifyCol(2, 'AutoHdr')
+        this.lvPicker.Redraw()
     }
 
     mnuCommands_OnEvent(ItemName, *) {
@@ -374,9 +357,8 @@ class Picker extends Gui {
 ; #region Methods
     Refresh_Notes() {
         OutputDebug('-- ' A_ThisFunc '()`n')
-        lbn := this.lbNote
-        lbn.Delete()
-        lbn.Add(this.ns.Titles)
+        this.lbNote.Delete()
+        this.lbNote.Add(this.ns.Titles)
     }
 
     Set_Category(category?) {
@@ -424,27 +406,28 @@ class Picker extends Gui {
         mon := Get_CurrentMonitor()
         this.GetPos(,,&w, &h)
         Find_Center(&x, &y, w, h, mon)
-        this.Set_Category()
-        this.Refresh_Picker()
-        this.Show(Format('hide x{} y{}', x, y))
-        AnimateWindow(this.Hwnd, 150, AW_ACTIVATE + RandFX())
-        this.Show()
+        ; this.Show(Format('hide x{} y{}', x, y))
+        ; AnimateWindow(this.Hwnd, 150, AW_ACTIVATE + RandFX())
+        this.Show(Format('x{} y{}', x, y))
+        WinWaitActive(this.Hwnd)
+        ; this.Show()
     }
     
     MakeItDisappear() {
         OutputDebug('-- ' A_ThisFunc '()`n')
         AnimateWindow(this.Hwnd, 150, AW_HIDE + RandFX())
-        this.Hide()
+        ; this.Hide()
     }
     
     FollowMouse() {
         OutputDebug('-- ' A_ThisFunc '()`n')
         x := y := w := h:= 0
-        this.GetPos(,,&w, &h)
         mon := Get_CurrentMonitor()
+        this.GetPos(,,&w, &h)
         Find_Center(&x, &y, w, h, mon)
         this.Move(x, y)
-        WinActivate(this.Hwnd)
+        this.lvPicker.Focus()
+        ; WinActivate(this.Hwnd)
     }
 
     ShowPreview(value) {
@@ -480,10 +463,11 @@ Showup_HotKey(hk) {
     if (isUP and !skipUP) {
         SetTimer(longpress, 0)
         OutputDebug('#### HotKey Pressed `n')
-        if (WinExist('ahk_id' view.Hwnd)) 
-            view.FollowMouse()
-        else
-            view.MakeItAppear()
+        view.MakeItAppear()
+        ; if (WinExist('ahk_id' view.Hwnd)) 
+        ;     view.FollowMouse()
+        ; else
+        ;     view.MakeItAppear()
     }
 
     longpress() {
