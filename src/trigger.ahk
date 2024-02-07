@@ -1,5 +1,5 @@
 ;@Ahk2Exe-SetName Trigger
-;@Ahk2Exe-SetVersion 2.5
+;@Ahk2Exe-SetVersion 2.6
 ;@Ahk2Exe-SetMainIcon assets/trigger.ico
 
 #Requires AutoHotkey v2.0
