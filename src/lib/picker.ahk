@@ -82,7 +82,6 @@ class Picker extends Gui {
         this.lvPicker.InsertCol(2,, 'Replacement')
         this.lvPicker.OnEvent('Click', 'lvPicker_OnClick')
         this.lvPicker.OnEvent('ItemSelect', 'lvPicker_OnItemSelect')
-        this.lvPicker.OnEvent('ContextMenu', 'lvPicker_OnContextMenu')
         PostMessage(LVM_SETHOVERTIME, 0, 1,, 'ahk_id ' this.lvPicker.Hwnd)
         hdrHwnd := SendMessage(LVM_GETHEADER := 0x101F, 0, 0, this.lvPicker)
         ControlSetStyle("+" . HDS_NOSIZING := 0x800, hdrHwnd)
@@ -282,26 +281,6 @@ class Picker extends Gui {
             this.txtPreview.Value := lv.GetText(row, 2)
         else
             ToolTip(,,,1)
-    }
-
-    lvPicker_OnContextMenu(lv, row, isRightClick, x, y) {
-        static tooltipshowing := false
-        if (!row)
-            return
-        if (!tooltipshowing) {
-            rep := lv.GetText(row, 2)
-            ToolTip(rep, x, y, 1)
-            tooltipshowing := true
-            SetTimer(TurnOffToolTip, -2000)
-        } else {
-            TurnOffToolTip()
-        }
-
-        TurnOffToolTip() {
-            ToolTip(,,,1)
-            tooltipshowing := false
-            SetTimer(TurnOffToolTip, 0)
-        }
     }
 
     lbCategories_OnChange(lb, *) {
