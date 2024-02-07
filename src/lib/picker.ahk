@@ -44,11 +44,6 @@ class Picker extends Gui {
     }
 
     Build() {
-        LVM_SETHOVERTIME := 0x1047
-        LVS_EX_HEADERDRAGDROP := 0x10
-        LVS_EX_TRACKSELECT := 0x8
-        LBS_NOINTEGRALHEIGHT := 0x100
-        HDS_NOSIZING  := 0x0800
         BUTTONHEIGHT := 50
         TABSHEIGHT := 35
         MX := 5, MY := 5
@@ -72,7 +67,7 @@ class Picker extends Gui {
         h := TOTALHEIGHT - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
         alth := TOTALHEIGHT - TABSHEIGHT - 2*MY
         options := Format('x{} y{} w{} h{} ', MX, MY + TABSHEIGHT, w, h)
-        options .= Format('+LV{} -LV{} ', LVS_EX_TRACKSELECT, LVS_EX_HEADERDRAGDROP)
+        options .= Format('+LV{} -LV{} ', LVS_EX_TRACKSELECT := 0x8, LVS_EX_HEADERDRAGDROP := 0x10)
         options .= '+Grid -Multi Section'
         this.lvPicker := this.AddListView(options)
         this.lvPicker.anchor := 'wh'
@@ -82,7 +77,7 @@ class Picker extends Gui {
         this.lvPicker.InsertCol(2,, 'Replacement')
         this.lvPicker.OnEvent('Click', 'lvPicker_OnClick')
         this.lvPicker.OnEvent('ItemSelect', 'lvPicker_OnItemSelect')
-        PostMessage(LVM_SETHOVERTIME, 0, 1,, 'ahk_id ' this.lvPicker.Hwnd)
+        PostMessage(LVM_SETHOVERTIME := 0x1047, 0, 1,, 'ahk_id ' this.lvPicker.Hwnd)
         hdrHwnd := SendMessage(LVM_GETHEADER := 0x101F, 0, 0, this.lvPicker)
         ControlSetStyle("+" . HDS_NOSIZING := 0x800, hdrHwnd)
 
@@ -93,14 +88,13 @@ class Picker extends Gui {
 
         w := 0.20 * (TOTALWIDTH - 3*MX)
         h := TOTALHEIGHT - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
-        options := Format('ys w{} h{} {} Sort', w, h, LBS_NOINTEGRALHEIGHT)
+        options := Format('ys w{} h{} {} Sort', w, h, LBS_NOINTEGRALHEIGHT := 0x100)
         this.lbCategories := this.AddListBox(options)
         this.lbCategories.anchor := 'xh'
         this.lbCategories.OnEvent('Change', 'lbCategories_OnChange')
         this.lbCategories.OnEvent('DoubleClick', 'lbCategories_OnDoubleClick')
 
-        h := BUTTONHEIGHT
-        options := Format('xp wp h{}', h, LBS_NOINTEGRALHEIGHT)
+        options := Format('xp wp h{}', BUTTONHEIGHT, LBS_NOINTEGRALHEIGHT)
         this.btnDoc := this.AddButton(options, 'Edit &Doc')
         this.btnDoc.anchor := 'xy'
         this.btnDoc.OnEvent('Click', (*)=>Run(this.cfg.document))
