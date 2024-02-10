@@ -8,26 +8,35 @@
 
 
 class Picker extends Gui {
+    _disabled := false
+    cfg := ''
+    currentNote := ''
+    edts := ''
+    notetimer := ''
+    ns := ''
+    ogw := 1000, ogh := 600 ; Original gui width and height
+
     __New(shortcuts, cfg) {
-        options := '+OwnDialogs +MinSize700x500 +Resize -MinimizeBox -MaximizeBox' 
+        options := '+OwnDialogs +MinSize700x500 +AlwaysOnTop +Resize -MinimizeBox -MaximizeBox' 
         super.__New(options, 'Trigger', this)
-        this._disabled := false
-        this.shortcuts := shortcuts
         this.cfg := cfg
+        this.shortcuts := shortcuts
         this.edts := Editors()
         this.ns := Notes(cfg.notesDir)
-        this.currentNote := ''
-        this.notetimer := ''
         this.Build()
+        this.Setup_Dimensions()
+        this.Show_Preview(this.cfg.ShowPreview)
         this.Refresh_Categories()
         this.Refresh_Notes()
         try ControlChooseIndex(1, this.lbNote.Hwnd)
-        OnMessage(WM_ACTIVATEAPP := 0x001C, ObjBindMethod(this, 'OnActivate'))
-        this.OnEvent('Escape', (*)=>this.MakeItDisappear())
-        this.OnEvent('Close', (*)=>this.Close())
-        this.OnEvent('Size', 'OnSize')
-        Hotkey(cfg.hotkey, Showup_HotKey)
-        Hotkey(cfg.hotkey . ' UP', Showup_HotKey)
+        w := this.ogw, h := this.ogh
+        if (cfg.rememberSize) {
+            w := cfg.guiWidth || w
+            h := cfg.guiHeigth || h
+        }
+        this.Move(,,w,h)
+        Hotkey(cfg.hotkey, (hk)=>this.Showup_HotKey(hk))
+        Hotkey(cfg.hotkey . ' UP', (hk)=>this.Showup_HotKey(hk))
     }
 
     Disabled {
@@ -43,36 +52,33 @@ class Picker extends Gui {
         }
     }
 
+; #region Methods
     Build() {
         BUTTONHEIGHT := 50
         TABSHEIGHT := 35
         MX := 5, MY := 5
-        TOTALWIDTH := 1000, TOTALHEIGHT := 600
         x := y := w := h := 0
-        
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        this.Show(Format('w{} h{} hide', TOTALWIDTH, TOTALHEIGHT))
+        ogw := this.ogw, ogh := this.ogh
+        this.Show(Format('w{} h{} hide', ogw, ogh))
         this.SetFont('s16 bold', 'Calibri')
         this.BackColor := 'BDC3CB'
         this.MarginX := MX, this.MarginY := MY
 
         ; Tabs
-        options := Format('x0 y0 w{} h{}', TOTALWIDTH, TOTALHEIGHT)
+        options := Format('x0 y0 w{} h{}', ogw, ogh)
         this.tabs := this.AddTab3(options, ['Picker', 'Notes'])
         this.tabs.anchor := 'wh'
-
 ; #region TabPicker
-        this.tabs.UseTab('Picker')
-        w := 0.80 * (TOTALWIDTH - 3*MX)
-        h := TOTALHEIGHT - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
-        alth := TOTALHEIGHT - TABSHEIGHT - 2*MY
+        w := 0.80 * (ogw - 3*MX)
+        hnop := ogh - TABSHEIGHT - 2*MY
+        h := hp := hnop - 3*BUTTONHEIGHT - 3*MY
         options := Format('x{} y{} w{} h{} ', MX, MY + TABSHEIGHT, w, h)
         options .= Format('+LV{} -LV{} ', LVS_EX_TRACKSELECT := 0x8, LVS_EX_HEADERDRAGDROP := 0x10)
         options .= '+Grid -Multi Section'
         this.lvPicker := this.AddListView(options)
         this.lvPicker.anchor := 'wh'
-        this.lvPicker.h := h
-        this.lvPicker.alth := alth
+        this.lvPicker.hp := hp
+        this.lvPicker.hnop := hnop
         this.lvPicker.InsertCol(1, 150, 'Trigger')
         this.lvPicker.InsertCol(2,, 'Replacement')
         this.lvPicker.OnEvent('Click', 'lvPicker_OnClick')
@@ -82,18 +88,18 @@ class Picker extends Gui {
         ControlSetStyle("+" . HDS_NOSIZING := 0x800, hdrHwnd)
 
         h := 3*BUTTONHEIGHT + 2*MY
-        options := Format('xs w{} h{} +BackgroundWhite', w, h)
+        options := Format('xs w{} h{} +BackgroundWhite +0x1000', w, h)
         this.txtPreview := this.AddText(options)
         this.txtPreview.anchor := 'yw'
 
-        w := 0.20 * (TOTALWIDTH - 3*MX)
-        h := TOTALHEIGHT - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
+
+        w := 0.20 * (ogw - 3*MX)
+        h := ogh - TABSHEIGHT - 3*BUTTONHEIGHT - 5*MY
         options := Format('ys w{} h{} {} Sort', w, h, LBS_NOINTEGRALHEIGHT := 0x100)
         this.lbCategories := this.AddListBox(options)
         this.lbCategories.anchor := 'xh'
         this.lbCategories.OnEvent('Change', 'lbCategories_OnChange')
         this.lbCategories.OnEvent('DoubleClick', 'lbCategories_OnDoubleClick')
-
         options := Format('xp wp h{}', BUTTONHEIGHT, LBS_NOINTEGRALHEIGHT)
         this.btnDoc := this.AddButton(options, 'Edit &Doc')
         this.btnDoc.anchor := 'xy'
@@ -105,20 +111,19 @@ class Picker extends Gui {
         this.btnReload := this.AddButton(options, '&Reload')
         this.btnReload.anchor := 'xy'
         this.btnReload.OnEvent('Click', (*)=>Reload())
-
 ; #endregion TabPicker
 ; #region TabNotes
         this.tabs.UseTab('Notes')
-        w := 0.80 * (TOTALWIDTH - 3*MX)
-        h := TOTALHEIGHT - TABSHEIGHT - 2*MY
+        w := 0.80 * (this.ogw - 3*MX)
+        h := this.ogh - TABSHEIGHT - 2*MY
         options := Format('x{} y{} w{} h{} +WantTab', MX, MY + TABSHEIGHT, w, h)
         this.edtNote := this.AddEdit(options)
         this.edtNote.anchor := 'wh'
         this.edtNote.Enabled := false
         this.edtNote.OnEvent('Change', 'edtNote_OnChange')
 
-        w := 0.20 * (TOTALWIDTH - 3*MX)
-        h := TOTALHEIGHT - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
+        w := 0.20 * (this.ogw - 3*MX)
+        h := this.ogh - TABSHEIGHT - 2*MY - 3*BUTTONHEIGHT - 3*MY
         options := Format('yp w{} h{} {} +Sort Section', w, h, LBS_NOINTEGRALHEIGHT)
         this.lbNote := this.AddListBox(options)
         this.lbNote.anchor := 'xh'
@@ -161,58 +166,143 @@ class Picker extends Gui {
         this.MenuBar.Add('Commands', mnuCommands)
         this.MenuBar.Add('Options', mnuOptions)
 ; #endregion Menu
-
-        ; this.Show('hide')
-        this.ShowPreview(this.cfg.ShowPreview)
-        w := TOTALWIDTH, h := TOTALHEIGHT
-        if (this.cfg.rememberSize) {
-            w := this.cfg.guiWidth || TOTALWIDTH
-            h := this.cfg.guiHeigth || TOTALHEIGHT
-        }
-        this.Show(Format('w{} h{} hide', w, h))
+        OnMessage(WM_ACTIVATEAPP := 0x001C, ObjBindMethod(this, 'OnActivate'))
+        this.OnEvent('Escape', (*)=>this.MakeItDisappear())
+        this.OnEvent('Close', (*)=>this.Close())
+        this.OnEvent('Size', 'OnSize')
     }
 
+    Setup_Dimensions() {
+        x := y := w := h := 0
+        for ,ctrl in this { ; Save the original size of each controls in the gui
+            ctrl.GetPos(&x, &y, &w, &h)
+            ctrl.origPos := {x: x, y: y, w: w, h: h}
+        }
+    }
+
+    Resize_Controls(width?, height?) {
+        x := y := w := h := 0
+        this.GetClientPos(,,&w, &h)
+        width := width ?? w, height := height ?? h
+        dx := dw := width - this.ogw ; deltas of the original position/size of the gui vs the new ones
+        dy := dh := height - this.ogh
+        for ,ctrl in this {
+            ctrl.GetPos(&x, &y, &w, &h)
+            if (InStr(ctrl.anchor, 'x'))
+                ox := ctrl.origPos.x, x := dx + ox
+            if (InStr(ctrl.anchor, 'y'))
+                oy := ctrl.origPos.y, y := dy + oy
+            if (InStr(ctrl.anchor, 'w'))
+                ow := ctrl.origPos.w, w := dw + ow
+            if (InStr(ctrl.anchor, 'h'))
+                oh := ctrl.origPos.h, h := dh + oh
+            ctrl.Move(x, y, w, h)
+        }
+    }
+
+    Show_Preview(value) {
+        x := y := w := h := 0
+        txt := this.txtPreview, lv := this.lvPicker
+        txt.Visible := value
+        lv.origPos.h := value?lv.hp:lv.hnop
+        this.Resize_Controls()
+    }
+
+    Set_Category(category?) {
+        if (IsSet(category) and category)
+            try {
+                this.lbCategories.Choose(category)
+                return
+            }
+        category := this.cfg.defaultCategory || this.lbCategories.Text || 1
+        this.lbCategories.Choose(category)
+    }
+
+    Refresh_Categories() {
+        lb := this.lbCategories
+        cat := lb.Text
+        cats := this.shortcuts.categories
+        lb.Delete()
+        if (cfg.showCategoryAll)
+            lb.Add(['*'])
+        lb.Add(cats)
+        this.Set_Category(cat)
+        this.Refresh_Picker()
+    }
+
+    Refresh_Picker(category?) {
+        lv := this.lvPicker
+        category := category ?? this.lbCategories.Text
+        lv.Delete()
+        for ,sc in this.shortcuts {
+            for ,rep in sc.replacements
+                if (category = "*" or rep.category = category) {
+                    lv.Add(, sc.trigger, rep.replacement)
+                }
+        }
+        lv.ModifyCol(1, 'AutoHdr')
+        lv.ModifyCol(2, 'AutoHdr')
+    }
+
+    Refresh_Notes() {
+        this.lbNote.Delete()
+        this.lbNote.Add(this.ns.Titles)
+    }
+
+    MakeItAppear() {
+        x := y := w := h:= 0
+        mon := Get_CurrentMonitor()
+        this.GetPos(,,&w, &h)
+        Find_Center(&x, &y, w, h, mon)
+        this.Move(x, y)
+        AnimateWindow(this.Hwnd, 150, AW_ACTIVATE + RandFX())
+    }
+
+    MakeItDisappear() {
+        AnimateWindow(this.Hwnd, 150, AW_HIDE + RandFX())
+    }
+
+    Close() {
+        w := h := 0
+        this.GetClientPos(,,&w,&h)
+        if (this.cfg.rememberSize) {
+            this.cfg.guiWidth := w
+            this.cfg.guiHeigth := h
+        }
+        ExitApp()
+    }
+
+    Showup_HotKey(hk) {
+        static skipUP := false
+        isUP := InStr(hk, ' UP')
+        if (!isUP) {
+            skipUP := false
+            SetTimer(longpress, -500)
+            KeyWait(hk, 'D T1')
+        }
+        if (isUP and !skipUP) {
+            SetTimer(longpress, 0)
+            OutputDebug('#### HotKey Pressed `n')
+            this.MakeItAppear()
+        }
+
+        longpress() {
+            OutputDebug('#### HotKey Long Pressed `n')
+            skipUP := true
+            edts.Tile()
+        }
+    }
+; #endregion Methods
 ; #region Events
     OnActivate(activated, thread, msg, hwnd) {
         if (!activated and hwnd = this.Hwnd)
             if (!WinWaitActive('ahk_id ' this.Hwnd,, 1)) {
                 this.MakeItDisappear()
             }
-        if (activated and hwnd = this.Hwnd)
-            WinWaitActive('ahk_id ' this.Hwnd)
     }
 
     OnSize(minmax, width, height) {
-        static ogw, ogh ; Original gui width and height
-        x := y := w := h := 0
-
-        ; If the original size of the gui and controls haven't been saved yet, save them
-        if !IsSet(ogw) {
-            ogw := width, ogh := height ; Save the original size of the gui
-            ; Save the original size of each controls in the gui
-            for ,ctrl in this {
-                ctrl.GetPos(&x, &y, &w, &h)
-                ctrl.origPos := {x: x, y: y, w: w, h: h}
-            }
-        }
-
-        this.lvPicker.origPos.h := this.cfg.showPreview?this.lvPicker.h:this.lvPicker.alth
-        this.txtPreview.Visible := this.cfg.showPreview
-
-        dx := dw := width - ogw ; deltas of the original position/size of the gui vs the new ones
-        dy := dh := height - ogh
-        for ,ctrl in this {
-            ctrl.GetPos(&x, &y, &w, &h)
-            if (InStr(ctrl.anchor, 'x'))
-                ox := ctrl.origPos.x, x := (dx * 1) + ox
-            if (InStr(ctrl.anchor, 'y'))
-                oy := ctrl.origPos.y, y := (dy * 1) + oy
-            if (InStr(ctrl.anchor, 'w'))
-                ow := ctrl.origPos.w, w := (dw * 1) + ow
-            if (InStr(ctrl.anchor, 'h'))
-                oh := ctrl.origPos.h, h := (dh * 1) + oh
-            ctrl.Move(x, y, w, h)
-        }
+        this.Resize_Controls(width, height)
         this.lvPicker.ModifyCol(2, 'AutoHdr')
         this.lvPicker.Redraw()
     }
@@ -238,19 +328,17 @@ class Picker extends Gui {
                 ConfigUI.Show_ConfigUI(this.cfg, this)
             Case 'Remember size':
                 this.cfg.rememberSize := !this.cfg.rememberSize
-                if (this.cfg.rememberSize) {
+                if (this.cfg.rememberSize)
                     MyMenu.Check('Remember size')
-                } else {
+                else
                     MyMenu.Uncheck('Remember size')
-                }
             Case 'Show preview':
                 this.cfg.showPreview := !this.cfg.showPreview
-                this.ShowPreview(this.cfg.showPreview)
-                if (this.cfg.showPreview) {
+                this.Show_Preview(this.cfg.showPreview)
+                if (this.cfg.showPreview)
                     MyMenu.Check('Show preview')
-                } else {
+                else
                     MyMenu.Uncheck('Show preview')
-                }
             Case 'Show "*" category':
                 this.cfg.showCategoryAll := !this.cfg.showCategoryAll
                 if (this.cfg.showCategoryAll)
@@ -327,125 +415,4 @@ class Picker extends Gui {
     }
 ; #endregion Events
 
-; #region Methods
-    Refresh_Notes() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        this.lbNote.Delete()
-        this.lbNote.Add(this.ns.Titles)
-    }
-
-    Set_Category(category?) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        if (IsSet(category) and category)
-            try {
-                this.lbCategories.Choose(category)
-                return
-            }
-        category := this.cfg.defaultCategory || this.lbCategories.Text || 1
-        this.lbCategories.Choose(category)
-    }
-
-    Refresh_Categories() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        lb := this.lbCategories
-        cat := lb.Text
-        cats := this.shortcuts.categories
-        lb.Delete()
-        if (cfg.showCategoryAll)
-            lb.Add(['*'])
-        lb.Add(cats)
-        this.Set_Category(cat)
-        this.Refresh_Picker()
-    }
-
-    Refresh_Picker(category?) {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        lv := this.lvPicker
-        category := category ?? this.lbCategories.Text
-        lv.Delete()
-        for ,sc in this.shortcuts {
-            for ,rep in sc.replacements
-                if (category = "*" or rep.category = category) {
-                    lv.Add(, sc.trigger, rep.replacement)
-                }
-        }
-        this.lvPicker.ModifyCol(1, 'AutoHdr')
-        this.lvPicker.ModifyCol(2, 'AutoHdr')
-    }
-
-    MakeItAppear() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        x := y := w := h:= 0
-        mon := Get_CurrentMonitor()
-        this.GetPos(,,&w, &h)
-        Find_Center(&x, &y, w, h, mon)
-        ; this.Show(Format('hide x{} y{}', x, y))
-        ; AnimateWindow(this.Hwnd, 150, AW_ACTIVATE + RandFX())
-        this.Show(Format('x{} y{}', x, y))
-        WinWaitActive(this.Hwnd)
-        ; this.Show()
-    }
-    
-    MakeItDisappear() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        AnimateWindow(this.Hwnd, 150, AW_HIDE + RandFX())
-        ; this.Hide()
-    }
-    
-    FollowMouse() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
-        x := y := w := h:= 0
-        mon := Get_CurrentMonitor()
-        this.GetPos(,,&w, &h)
-        Find_Center(&x, &y, w, h, mon)
-        this.Move(x, y)
-        this.lvPicker.Focus()
-        ; WinActivate(this.Hwnd)
-    }
-
-    ShowPreview(value) {
-        x := y := w := h := 0
-        this.txtPreview.Visible := value
-        this.GetPos(&x,&y,&w,&h)
-        this.Move(0,0,1000,600)
-        this.Move(x,y,w,h)
-    }
-
-    Close() {
-        w := h := 0
-        this.GetClientPos(,,&w,&h)
-        if (this.cfg.rememberSize) {
-            this.cfg.guiWidth := w
-            this.cfg.guiHeigth := h
-        }
-        ExitApp()
-    }
-; #endregion Methods
-}
-
-; #region Functions
-Showup_HotKey(hk) {
-    static skipUP := false
-    ui := view
-    isUP := RegExMatch(hk, ' UP$')
-    if (!isUP) {
-        skipUP := false
-        SetTimer(longpress, -500)
-        KeyWait(hk, 'D T1')
-    }
-    if (isUP and !skipUP) {
-        SetTimer(longpress, 0)
-        OutputDebug('#### HotKey Pressed `n')
-        view.MakeItAppear()
-        ; if (WinExist('ahk_id' view.Hwnd)) 
-        ;     view.FollowMouse()
-        ; else
-        ;     view.MakeItAppear()
-    }
-
-    longpress() {
-        OutputDebug('#### HotKey Long Pressed `n')
-        skipUP := true
-        edts.Tile()
-    }
 }
