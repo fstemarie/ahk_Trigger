@@ -1,7 +1,6 @@
 #Requires AutoHotkey v2.0
 
 Find_Center(&x, &y, w, h, monitor) {
-    OutputDebug('-- ' A_ThisFunc '()`n')
     left := top := right := bottom := 0
     MonitorGet(monitor, &left, &top, &right, &bottom)
     x := Ceil(left + (right - left - w) / 2),
@@ -10,7 +9,6 @@ Find_Center(&x, &y, w, h, monitor) {
 }
 
 Get_CurrentMonitor() {
-    OutputDebug('-- ' A_ThisFunc '()`n')
     left := top := right := bottom := mouseX := mouseY := 0
     CoordMode('Mouse', 'Screen')
     MouseGetPos(&mouseX, &mouseY)
