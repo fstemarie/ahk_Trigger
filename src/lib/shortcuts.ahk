@@ -31,7 +31,7 @@ class Shortcuts extends Map {
     static Load_CSV(csvFile) { 
         shorts := Shortcuts()
         try {
-            csv := StrSplit(FileRead(csvFile, 'UTF-8'), '`r`n')
+            csv := StrSplit(FileRead(csvFile), '`r`n')
         } catch OSError as e {
             MsgBox(e.Message, 'Error', '0x10')
             ExitApp(1)
