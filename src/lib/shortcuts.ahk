@@ -22,7 +22,6 @@ class Shortcuts extends Map {
     }
 
     Setup_HotStrings() {
-        OutputDebug('-- ' A_ThisFunc '()`n')
         For ,sc in this {
             sc.New_HotString()
             OutputDebug(A_Tab 'Added HotString: ' sc.trigger '`n')
@@ -30,10 +29,13 @@ class Shortcuts extends Map {
     }
 
     static Load_CSV(csvFile) { 
-        OutputDebug('-- ' A_ThisFunc '()`n')
         shorts := Shortcuts()
-    
-        csv := StrSplit(FileRead(csvFile), '`r`n')
+        try {
+            csv := StrSplit(FileRead(csvFile, 'UTF-8'), '`r`n')
+        } catch OSError as e {
+            MsgBox(e.Message, 'Error', '0x10')
+            ExitApp(1)
+        }
         for line in csv {
             trigger := replacement := category := tags := ''
             loop parse line, 'CSV' {
