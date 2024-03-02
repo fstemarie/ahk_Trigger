@@ -49,18 +49,22 @@ Setup_Config() {
     try FileInstall('assets/trigger.ini', 'trigger.ini')
     cfgFile := SubStr(A_ScriptName, 1, -4) . '.ini'
     cfg := Config.Load_Config(cfgFile)
-    if (!cfg.csvFile or cfg.csvFile = 'trigger.csv') {
+    if (!FileExist(cfg.csvFile)) {
+        if (cfg.csvFile)
+            MsgBox('CSV File not found', 'Error', '0x0 0x10')
         try FileInstall('assets/trigger.csv', 'trigger.csv')
         cfg.csvFile := 'trigger.csv'
     }
-    if (!cfg.notesDir or cfg.notesDir = 'notes') {
+    if (!DirExist(cfg.notesDir)) {
+        if (cfg.notesDir)
+            MsgBox('Notes directory not found', 'Error', '0x0 0x10')
         try DirCreate('notes')
         cfg.notesDir := 'notes'
     }
 
     A_TrayMenu.Delete()
-    A_TrayMenu.Add('Reload', (*) => Reload())
-    A_TrayMenu.Add('Quit', (*) => ExitApp())
+    A_TrayMenu.Add('Reload', (*)=>Reload())
+    A_TrayMenu.Add('Quit', (*)=>ExitApp())
 }
 
 Setup_Icon(icon) {
