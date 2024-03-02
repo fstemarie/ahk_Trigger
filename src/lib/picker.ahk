@@ -224,7 +224,16 @@ class Picker extends Gui {
     Refresh_Categories() {
         lb := this.lbCategories
         category := lb.Text
-        categories := this.shortcuts.categories
+        categories := this.shortcuts.categories.Clone()
+        if (this.cfg.defaultCategory) {
+            for i, val in categories {
+                if (this.cfg.defaultCategory = val) {
+                    categories[i] .= ' <='
+                    break
+                }
+            }
+        } else
+            category := StrReplace(category, ' <=', '')
         lb.Delete()
         if (this.cfg.showCategoryAll)
             lb.Add(['*'])
@@ -236,6 +245,7 @@ class Picker extends Gui {
 
     Refresh_Picker(category) {
         lv := this.lvPicker
+        category := StrReplace(category, ' <=', '')
         lv.Delete()
         for ,sc in this.shortcuts {
             for ,rep in sc.replacements
@@ -372,10 +382,12 @@ class Picker extends Gui {
 
     lbCategories_OnDoubleClick(lb, *) {
         if (lb.Text) {
-            if (this.cfg.defaultCategory != lb.Text)
-                this.cfg.defaultCategory := lb.Text
+            category := StrReplace(lb.Text, ' <=', '')
+            if (this.cfg.defaultCategory != category)
+                this.cfg.defaultCategory := category
             else
                 this.cfg.defaultCategory := ''
+            this.Refresh_Categories()
         }
     }
 
