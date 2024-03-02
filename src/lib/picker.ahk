@@ -9,15 +9,15 @@
 
 class Picker extends Gui {
     _disabled := false
+    _currentNote := ''
     cfg := ''
-    currentNote := ''
     edts := ''
     notetimer := ''
     ns := ''
     ogw := 1000, ogh := 600 ; Original gui width and height
 
     __New(shortcuts, cfg) {
-        options := '+OwnDialogs +MinSize700x500 +AlwaysOnTop +Resize -MinimizeBox -MaximizeBox' 
+        options := '+OwnDialogs +MinSize700x500 +Resize -MinimizeBox -MaximizeBox' 
         super.__New(options, 'Trigger', this)
         this.cfg := cfg
         this.shortcuts := shortcuts
@@ -36,7 +36,6 @@ class Picker extends Gui {
         }
         this.Move(,,w,h)
         Hotkey(cfg.hotkey, (hk)=>this.Showup_HotKey(hk))
-        Hotkey(cfg.hotkey . ' UP', (hk)=>this.Showup_HotKey(hk))
     }
 
     Disabled {
@@ -49,6 +48,17 @@ class Picker extends Gui {
                 this._disabled := false
                 this.Opt('-Disabled')
             }
+        }
+    }
+
+    CurrentNote {
+        get => this._currentNote
+        set {
+            if (!value)
+                this.btnDelNote.Opt('+Disabled')
+            else
+                this.btnDelNote.Opt('-Disabled')
+            this._currentNote := value
         }
     }
 
@@ -133,14 +143,16 @@ class Picker extends Gui {
         options := Format('xs wp h{} Section', h)
         this.btnRefreshNote := this.AddButton(options, '&Refresh')
         this.btnRefreshNote.anchor := 'xy'
-        this.btnRefreshNote.OnEvent('Click', 'btnRefreshNote_OnClick')
+        this.btnRefreshNote.OnEvent('Click', (*)=>this.btnRefreshNote_OnClick())
         options := 'xp wp hp'
-        this.btnNewNote := this.AddButton(options, '&New')
+        this.btnNewNote := this.AddButton(options, 'New')
         this.btnNewNote.anchor := 'xy'
-        this.btnNewNote.OnEvent('Click', 'btnNewNote_OnClick')
-        this.btnDelNote := this.AddButton(options, '&Delete')
+        this.btnNewNote.OnEvent('Click', (*)=>this.btnNewNote_OnClick())
+        options .= ' +Disabled'
+        this.btnDelNote := this.AddButton(options, 'Delete')
         this.btnDelNote.anchor := 'xy'
-        this.btnDelNote.OnEvent('Click', 'btnDelNote_OnClick')
+        this.btnDelNote.OnEvent('Click', (*)=>this.btnDelNote_OnClick())
+
 ; #endregion TabNotes
 ; #region Menu
         menuHandler := ObjBindMethod(this, 'mnuCommands_OnEvent')
@@ -184,7 +196,8 @@ class Picker extends Gui {
         x := y := w := h := 0
         this.GetClientPos(,,&w, &h)
         width := width ?? w, height := height ?? h
-        dx := dw := width - this.ogw ; deltas of the original position/size of the gui vs the new ones
+        ; deltas of the original position/size of the gui vs the new ones
+        dx := dw := width - this.ogw
         dy := dh := height - this.ogh
         for ,ctrl in this {
             ctrl.GetPos(&x, &y, &w, &h)
@@ -208,31 +221,21 @@ class Picker extends Gui {
         this.Resize_Controls()
     }
 
-    Set_Category(category?) {
-        if (IsSet(category) and category)
-            try {
-                this.lbCategories.Choose(category)
-                return
-            }
-        category := this.cfg.defaultCategory || this.lbCategories.Text || 1
-        this.lbCategories.Choose(category)
-    }
-
     Refresh_Categories() {
         lb := this.lbCategories
-        cat := lb.Text
-        cats := this.shortcuts.categories
+        category := lb.Text
+        categories := this.shortcuts.categories
         lb.Delete()
-        if (cfg.showCategoryAll)
+        if (this.cfg.showCategoryAll)
             lb.Add(['*'])
-        lb.Add(cats)
-        this.Set_Category(cat)
-        this.Refresh_Picker()
+        lb.Add(categories)
+        category := this.cfg.defaultCategory || category || 1
+        try this.lbCategories.Choose(category)
+        this.Refresh_Picker(category)
     }
 
-    Refresh_Picker(category?) {
+    Refresh_Picker(category) {
         lv := this.lvPicker
-        category := category ?? this.lbCategories.Text
         lv.Delete()
         for ,sc in this.shortcuts {
             for ,rep in sc.replacements
@@ -245,8 +248,11 @@ class Picker extends Gui {
     }
 
     Refresh_Notes() {
-        this.lbNote.Delete()
-        this.lbNote.Add(this.ns.Titles)
+        lb := this.lbNote
+        n := lb.Text || 1
+        lb.Delete()
+        lb.Add(this.ns.Titles)
+        try lb.Choose(n)
     }
 
     MakeItAppear() {
@@ -254,12 +260,18 @@ class Picker extends Gui {
         mon := Get_CurrentMonitor()
         this.GetPos(,,&w, &h)
         Find_Center(&x, &y, w, h, mon)
+        if (WinActive('ahk_id ' this.Hwnd)) {
         this.Move(x, y)
-        AnimateWindow(this.Hwnd, 150, AW_ACTIVATE + RandFX())
+        } else {
+            this.Show(Format('x{} y{}', x, y))
+            ; AnimateWindow(this.Hwnd, 150, AW_ACTIVATE + RandFX())
+            this.Refresh_Categories()
+        }
     }
 
     MakeItDisappear() {
-        AnimateWindow(this.Hwnd, 150, AW_HIDE + RandFX())
+        this.Hide()
+        ; AnimateWindow(this.Hwnd, 150, AW_HIDE + RandFX())
     }
 
     Close() {
@@ -273,32 +285,20 @@ class Picker extends Gui {
     }
 
     Showup_HotKey(hk) {
-        static skipUP := false
-        isUP := InStr(hk, ' UP')
-        if (!isUP) {
-            skipUP := false
-            SetTimer(longpress, -500)
-            KeyWait(hk, 'D T1')
-        }
-        if (isUP and !skipUP) {
-            SetTimer(longpress, 0)
-            OutputDebug('#### HotKey Pressed `n')
+        if (KeyWait(hk, 'T1')) {
+            OutputDebug('#### HotKey Short Pressed `n')
             this.MakeItAppear()
-        }
-
-        longpress() {
+        } else {
             OutputDebug('#### HotKey Long Pressed `n')
-            skipUP := true
             edts.Tile()
         }
+        KeyWait(hk)
     }
 ; #endregion Methods
 ; #region Events
     OnActivate(activated, thread, msg, hwnd) {
         if (!activated and hwnd = this.Hwnd)
-            if (!WinWaitActive('ahk_id ' this.Hwnd,, 1)) {
                 this.MakeItDisappear()
-            }
     }
 
     OnSize(minmax, width, height) {
@@ -396,20 +396,22 @@ class Picker extends Gui {
         this.edtNote.Enabled := true
     }
 
-    btnRefreshNote_OnClick(*) {
+    btnRefreshNote_OnClick() {
         this.Refresh_Notes()
     }
 
-    btnNewNote_OnClick(*) {
+    btnNewNote_OnClick() {
         this.ns.New()
         this.Refresh_Notes()
     }
 
-    btnDelNote_OnClick(*) {
-        if (this.currentNote.Delete()) {
+    btnDelNote_OnClick() {
+        if (!this.CurrentNote)
+            return
+        if (this.CurrentNote.Delete()) {
             this.edtNote.Enabled := false
             this.edtNote.Value := ''
-            this.currentNote := ''
+            this.CurrentNote := ''
             this.Refresh_Notes()
         }
     }
