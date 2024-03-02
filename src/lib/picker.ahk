@@ -285,7 +285,7 @@ class Picker extends Gui {
     }
 
     Showup_HotKey(hk) {
-        if (KeyWait(hk, 'T1')) {
+        if (KeyWait(hk, 'T0.5')) {
             OutputDebug('#### HotKey Short Pressed `n')
             this.MakeItAppear()
         } else {
@@ -298,7 +298,8 @@ class Picker extends Gui {
 ; #region Events
     OnActivate(activated, thread, msg, hwnd) {
         if (!activated and hwnd = this.Hwnd)
-                this.MakeItDisappear()
+                if (!WinWaitActive('ahk_id ' this.Hwnd,, 1.5))
+                    this.MakeItDisappear()
     }
 
     OnSize(minmax, width, height) {
