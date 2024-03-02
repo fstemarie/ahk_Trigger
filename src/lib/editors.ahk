@@ -8,6 +8,7 @@ Class Editors {
         pid := ''
         Run('notepad.exe',,, &pid)
         WinWait('ahk_pid ' pid)
+        GroupAdd('editors', 'ahk_pid ' pid)
         This.Tile()
     }
 
@@ -20,7 +21,7 @@ Class Editors {
         h := (bottom - top) * 0.75
         y := top + h * 0.25
         SetTitleMatchMode 2
-        notepads := WinGetList('Untitled - Notepad')
+        notepads := WinGetList('ahk_group editors')
         for i, id in notepads {
             x := left + w * (i - 1)
             WinActivate('ahk_id' id)
